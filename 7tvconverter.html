@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>7TV Sticker</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #0b0c0e;
+        --card: #13141a;
+        --line: #1f2029;
+        --accent: #00e5ff;
+        --green: #39ff7e;
+        --red: #ff3f5a;
+        --yellow: #ffe135;
+        --text: #e8eaf0;
+        --muted: #4a4d5e;
+        --wa: #25d366;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 1rem 5rem;
+        overflow-x: hidden;
+      }
+
+      /* ── Grid bg ── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--line) 1px, transparent 1px);
+        background-size: 40px 40px;
+        opacity: 0.35;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ── Glow blobs ── */
+      body::after {
+        content: "";
+        position: fixed;
+        top: -10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 700px;
+        height: 300px;
+        background: radial-gradient(
+          ellipse,
+          rgba(0, 229, 255, 0.08) 0%,
+          transparent 65%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ── Header ── */
+      header {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        padding: 3rem 0 2rem;
+      }
+
+      .logo {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(3.5rem, 12vw, 6.5rem);
+        letter-spacing: 0.04em;
+        line-height: 1;
+        background: linear-gradient(
+          135deg,
+          var(--accent) 0%,
+          var(--green) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 0 30px rgba(0, 229, 255, 0.3));
+      }
+
+      .logo-sub {
+        font-size: 0.65rem;
+        color: var(--muted);
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        margin-top: 0.3rem;
+      }
+
+      /* ── Card ── */
+      .card {
+        position: relative;
+        z-index: 1;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        width: 100%;
+        max-width: 500px;
+        margin-bottom: 1rem;
+        overflow: hidden;
+      }
+
+      .card-header {
+        padding: 0.6rem 1rem;
+        border-bottom: 1px solid var(--line);
+        font-size: 0.6rem;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .card-header .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 6px var(--accent);
+      }
+
+      .card-body {
+        padding: 1.2rem;
+      }
+
+      /* ── Tabs ── */
+      .tabs {
+        display: flex;
+        gap: 0;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 0.55rem;
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        font-family: "DM Mono", monospace;
+        font-size: 0.72rem;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .tab-btn.active {
+        background: var(--line);
+        color: var(--accent);
+      }
+      .tab-btn:not(:last-child) {
+        border-right: 1px solid var(--line);
+      }
+
+      /* ── Input ── */
+      .input-row {
+        display: flex;
+        gap: 0.5rem;
+      }
+      input[type="text"] {
+        flex: 1;
+        background: #0b0c0e;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        color: var(--text);
+        font-family: "DM Mono", monospace;
+        font-size: 0.75rem;
+        padding: 0.65rem 0.9rem;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      input[type="text"]:focus {
+        border-color: var(--accent);
+      }
+      input[type="text"]::placeholder {
+        color: var(--muted);
+      }
+
+      .btn {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        border-radius: 3px;
+        font-family: "DM Mono", monospace;
+        font-weight: 500;
+        font-size: 0.75rem;
+        padding: 0.65rem 1.1rem;
+        cursor: pointer;
+        transition:
+          opacity 0.15s,
+          transform 0.1s;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        opacity: 0.85;
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn.ghost {
+        background: transparent;
+        border: 1px solid var(--line);
+        color: var(--text);
+      }
+      .btn.green {
+        background: var(--green);
+      }
+      .btn.wa-btn {
+        background: var(--wa);
+        color: #fff;
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 0.82rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border-radius: 3px;
+        margin-top: 0.8rem;
+      }
+
+      /* ── Dropzone ── */
+      #dropzone {
+        border: 1px dashed var(--muted);
+        border-radius: 3px;
+        padding: 2rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
+        position: relative;
+      }
+      #dropzone.over {
+        border-color: var(--accent);
+        background: rgba(0, 229, 255, 0.04);
+      }
+      #dropzone input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+      #dropzone .icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+      #dropzone .hint {
+        font-size: 0.62rem;
+        color: #2e303d;
+        margin-top: 0.4rem;
+      }
+
+      /* ── Status bar ── */
+      #status {
+        position: relative;
+        z-index: 1;
+        font-size: 0.68rem;
+        text-align: center;
+        min-height: 1.4em;
+        color: var(--muted);
+        letter-spacing: 0.05em;
+      }
+      #status.ok {
+        color: var(--green);
+      }
+      #status.err {
+        color: var(--red);
+      }
+      #status.run {
+        color: var(--accent);
+      }
+
+      /* ── Preview card ── */
+      #preview-card {
+        display: none;
+      }
+
+      .preview-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .frame-wrap {
+        position: relative;
+        width: 180px;
+        height: 180px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: repeating-conic-gradient(#17181f 0% 25%, #0f1016 0% 50%) 0
+          0/18px 18px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .frame-wrap img,
+      .frame-wrap canvas {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+      .frame-badge {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        background: rgba(0, 0, 0, 0.75);
+        color: var(--accent);
+        font-size: 0.58rem;
+        padding: 2px 6px;
+        border-radius: 2px;
+      }
+
+      .meta {
+        width: 100%;
+        font-size: 0.68rem;
+        line-height: 1.9;
+        color: var(--muted);
+      }
+      .meta b {
+        color: var(--text);
+      }
+      .meta .ok {
+        color: var(--green);
+      }
+      .meta .warn {
+        color: var(--yellow);
+      }
+
+      .actions {
+        display: flex;
+        gap: 0.5rem;
+        width: 100%;
+      }
+      .actions .btn {
+        flex: 1;
+      }
+
+      /* ── Nota CORS ── */
+      .cors-note {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 500px;
+        background: #13120a;
+        border: 1px solid #3a3010;
+        border-radius: 4px;
+        padding: 0.8rem 1rem;
+        font-size: 0.65rem;
+        color: #a08840;
+        line-height: 1.7;
+        display: none;
+      }
+      .cors-note b {
+        color: var(--yellow);
+      }
+
+      /* ── Steps ── */
+      .steps {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 500px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+      .step {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 0.9rem;
+        font-size: 0.65rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .step-n {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 2rem;
+        line-height: 1;
+        margin-bottom: 0.2rem;
+      }
+      .step:nth-child(1) .step-n {
+        color: var(--accent);
+      }
+      .step:nth-child(2) .step-n {
+        color: var(--green);
+      }
+      .step:nth-child(3) .step-n {
+        color: var(--yellow);
+      }
+
+      footer {
+        position: relative;
+        z-index: 1;
+        margin-top: 3rem;
+        font-size: 0.6rem;
+        color: #222330;
+        text-align: center;
+      }
+
+      /* ── Spinner ── */
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spin {
+        display: inline-block;
+        animation: spin 0.8s linear infinite;
+      }
+
+      /* ── Pulse dot ── */
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 4px var(--accent);
+        }
+        50% {
+          box-shadow: 0 0 12px var(--accent);
+        }
+      }
+      .dot {
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      /* ── Search results scrollbar ── */
+      #search-results::-webkit-scrollbar { width: 4px; }
+      #search-results::-webkit-scrollbar-track { background: var(--bg); }
+      #search-results::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+      #search-results::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+      /* ── Search result hover glow ── */
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+      .search-item { animation: fadeIn 0.2s ease-out forwards; }
+
+      /* ── Multi-select ── */
+      .emote-card { position: relative; cursor: pointer; border: 1px solid var(--line); border-radius: 4px; padding: 0.4rem; text-align: center; transition: border-color 0.2s, box-shadow 0.2s; background: var(--card); }
+      .emote-card:hover { border-color: var(--accent); }
+      .emote-card.selected { border-color: var(--green); box-shadow: 0 0 8px rgba(57,255,126,0.2); }
+      .emote-card .check { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--muted); background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; transition: all 0.15s; }
+      .emote-card.selected .check { background: var(--green); border-color: var(--green); color: #000; }
+      .select-counter { font-size: 0.62rem; color: var(--muted); margin-top: 0.5rem; text-align: center; }
+      .select-counter b { color: var(--green); }
+      .select-counter .warn-count { color: var(--yellow); }
+
+      /* ── Selected queue card ── */
+      #queue-card { display: none; }
+      .queue-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
+      .queue-item { position: relative; width: 48px; height: 48px; border-radius: 4px; border: 1px solid var(--line); overflow: hidden; background: var(--bg); }
+      .queue-item img { width: 100%; height: 100%; object-fit: contain; }
+      .queue-item .remove { position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; background: var(--red); color: #fff; font-size: 0.55rem; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; line-height: 1; }
+      .queue-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+      .queue-actions .btn { flex: 1; min-width: 120px; }
+      .share-hint { font-size: 0.6rem; color: var(--muted); text-align: center; margin-top: 0.6rem; line-height: 1.6; }
+      .share-hint b { color: var(--wa); }
+
+      /* ── Progress bar ── */
+      .progress-wrap { width: 100%; height: 6px; background: var(--line); border-radius: 3px; margin-top: 0.6rem; overflow: hidden; display: none; }
+      .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 3px; width: 0%; transition: width 0.3s; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">7TV → WA</div>
+      <div class="logo-sub">sticker converter &nbsp;·&nbsp; sin contorno</div>
+    </header>
+
+    <!-- Input card -->
+    <div class="card">
+      <div class="card-header"><span class="dot"></span>fuente del emote</div>
+      <div class="card-body">
+        <div class="tabs">
+          <button class="tab-btn active" onclick="tab('url', this)">
+            🔗 Link 7TV
+          </button>
+          <button class="tab-btn" onclick="tab('search', this)">
+            🔍 Buscar emote
+          </button>
+          <button class="tab-btn" onclick="tab('file', this)">
+            📁 Subir archivo
+          </button>
+        </div>
+
+        <div id="tab-url">
+          <div class="input-row">
+            <input
+              type="text"
+              id="url-in"
+              placeholder="https://7tv.app/emotes/..."
+              onkeydown="if(event.key==='Enter')fromUrl()"
+            />
+            <button class="btn" onclick="fromUrl()">Cargar</button>
+          </div>
+          <p
+            style="font-size: 0.62rem; color: var(--muted); margin-top: 0.6rem"
+          >
+            Acepta link de página 7TV o URL directa de .png/.gif/.webp
+          </p>
+        </div>
+
+        <div id="tab-search" style="display: none">
+          <div class="input-row">
+            <input
+              type="text"
+              id="search-in"
+              placeholder="Nombre del emote... ej: KEKW, peepoHappy"
+              onkeydown="if(event.key==='Enter')searchEmotes()"
+            />
+            <button class="btn" onclick="searchEmotes()">Buscar</button>
+          </div>
+          <div id="search-results" style="
+            margin-top: 0.8rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+          "></div>
+        </div>
+
+        <div id="tab-file" style="display: none">
+          <div id="dropzone">
+            <input
+              type="file"
+              id="file-in"
+              accept="image/*,.gif,.webp"
+              onchange="fromFile(event)"
+            />
+            <span class="icon">🖼️</span>
+            <span>Arrastra imagen o GIF aquí</span>
+            <span style="margin-top: 0.3rem; font-size: 0.73rem"
+              >o haz clic para seleccionar</span
+            >
+            <span class="hint">PNG · GIF animado · WEBP · JPG</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="status"></div>
+
+    <!-- CORS hint -->
+    <div class="cors-note" id="cors-note">
+      <b>⚠ Error de CORS</b> — El servidor de 7TV bloqueó la descarga directa
+      desde el navegador.<br />
+      <b>Solución rápida:</b> Ve a <b>7tv.app</b>, abre el emote, clic derecho
+      en la imagen → <em>"Guardar imagen como"</em> y súbela en la pestaña
+      <b>Subir archivo</b>.
+    </div>
+
+    <!-- Preview card -->
+    <div class="card" id="preview-card">
+      <div class="card-header">
+        <span
+          class="dot"
+          style="background: var(--green); box-shadow: 0 0 6px var(--green)"
+        ></span
+        >sticker listo
+      </div>
+      <div class="card-body">
+        <div class="preview-inner">
+          <div class="frame-wrap" id="frame">
+            <img id="prev-img" style="display: none" />
+            <canvas id="prev-canvas" style="display: none"></canvas>
+            <div class="frame-badge" id="frame-badge"></div>
+          </div>
+
+          <div class="meta" id="meta"></div>
+
+          <div class="actions">
+            <button class="btn ghost" onclick="reset()">↩ Nuevo</button>
+            <button class="btn" onclick="download()">⬇ Descargar</button>
+          </div>
+
+          <button
+            class="btn wa-btn"
+            id="share-btn"
+            onclick="shareToWA()"
+            style="display: none"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+              />
+            </svg>
+            Compartir a WhatsApp
+          </button>
+
+          <div
+            id="share-fallback"
+            style="
+              display: none;
+              width: 100%;
+              font-size: 0.65rem;
+              color: var(--muted);
+              text-align: center;
+              line-height: 1.8;
+            "
+          >
+            📵 Web Share no disponible en este dispositivo.<br />
+            Descarga el archivo con ⬇ y ábrelo en tu celular → compartir → WhatsApp.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selected emotes queue -->
+    <div class="card" id="queue-card">
+      <div class="card-header">
+        <span class="dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></span>
+        emotes seleccionados · <span id="queue-count">0</span>
+      </div>
+      <div class="card-body">
+        <div class="queue-grid" id="queue-grid"></div>
+        <div class="progress-wrap" id="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="queue-actions">
+          <button class="btn ghost" onclick="clearQueue()">🗑 Limpiar</button>
+          <button class="btn green" onclick="downloadAllZip()">📦 Descargar ZIP</button>
+          <button class="btn wa-btn" id="share-all-btn" onclick="shareAllToWA()" style="display:none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Enviar stickers a WhatsApp (uno por uno)
+          </button>
+        </div>
+        <div class="share-hint" id="share-hint" style="display:none">
+          💡 En móvil: cada sticker se comparte como <b>WEBP 512×512</b> para que WhatsApp lo agregue <b>sin contorno blanco</b>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <div class="steps">
+      <div class="step">
+        <div class="step-n">01</div>
+        Busca emotes o pega el link de 7TV
+      </div>
+      <div class="step">
+        <div class="step-n">02</div>
+        Selecciona emotes (PNG o GIF animado)
+      </div>
+      <div class="step">
+        <div class="step-n">03</div>
+        Descarga ZIP o comparte a WhatsApp ✨
+      </div>
+    </div>
+
+    <footer>100% en tu navegador · sin servidores · sin cookies</footer>
+
+    <script>
+      // ── State ────────────────────────────────────────────────────────────────────
+      let blob = null,
+        fname = "sticker",
+        animated = false;
+
+      // Multi-select queue: [{id, name, thumbUrl, emoteData}]
+      const selectedQueue = [];
+
+      // ── Tabs ─────────────────────────────────────────────────────────────────────
+      function tab(id, el) {
+        document.getElementById("tab-url").style.display = id === "url" ? "" : "none";
+        document.getElementById("tab-search").style.display = id === "search" ? "" : "none";
+        document.getElementById("tab-file").style.display = id === "file" ? "" : "none";
+        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+        el.classList.add("active");
+      }
+
+      // ── Search emotes by name ──────────────────────────────────────────────────────
+      let lastSearchItems = [];
+      async function searchEmotes() {
+        const q = document.getElementById("search-in").value.trim();
+        if (!q) { st("Escribe un nombre de emote.", "err"); return; }
+        st("⟳ Buscando emotes...", "run");
+        const results = document.getElementById("search-results");
+        results.innerHTML = "";
+        try {
+          const res = await fetch(`https://7tv.io/v3/gql`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: `query($q:String!){emotes(query:$q,limit:20,filter:{case_sensitive:false,exact_match:false,ignore_tags:false}){items{id name host{url files{name format width height}}}}}`,
+              variables: { q }
+            })
+          });
+          const data = await res.json();
+          const items = data?.data?.emotes?.items || [];
+          lastSearchItems = items;
+          if (!items.length) { st("No se encontraron emotes.", "err"); return; }
+          st(`${items.length} emotes — clic para seleccionar`, "ok");
+          renderSearchResults(items);
+        } catch (e) {
+          st("Error buscando: " + e.message, "err");
+        }
+      }
+
+      function renderSearchResults(items) {
+        const results = document.getElementById("search-results");
+        results.innerHTML = "";
+        items.forEach(em => {
+          const base = em.host?.url || "";
+          const urlBase = base.startsWith("//") ? "https:" + base : base;
+          const thumbFile = em.host?.files?.find(f => f.name.includes("2x") && f.format === "WEBP") || em.host?.files?.[0];
+          const thumbUrl = thumbFile ? urlBase + "/" + thumbFile.name : "";
+          const isSelected = selectedQueue.some(s => s.id === em.id);
+          const div = document.createElement("div");
+          div.className = "emote-card" + (isSelected ? " selected" : "");
+          div.dataset.emoteId = em.id;
+          div.innerHTML = `<div class="check">${isSelected ? "✓" : ""}</div><img src="${thumbUrl}" alt="${em.name}" style="width:56px;height:56px;object-fit:contain;display:block;margin:0 auto 0.3rem;"><span style='font-size:0.58rem;color:var(--muted);word-break:break-all;'>${em.name}</span>`;
+          div.onclick = () => toggleSelectEmote(em, thumbUrl, div);
+          results.appendChild(div);
+        });
+      }
+
+      // ── Toggle select emote ──────────────────────────────────────────────────────
+      function toggleSelectEmote(em, thumbUrl, div) {
+        const idx = selectedQueue.findIndex(s => s.id === em.id);
+        if (idx >= 0) {
+          selectedQueue.splice(idx, 1);
+          div.classList.remove("selected");
+          div.querySelector(".check").textContent = "";
+        } else {
+          selectedQueue.push({ id: em.id, name: em.name, thumbUrl, emoteData: em });
+          div.classList.add("selected");
+          div.querySelector(".check").textContent = "✓";
+          if (selectedQueue.length > 30) {
+            st(`⚠ ${selectedQueue.length} emotes seleccionados — puede tardar`, "err");
+          }
+        }
+        updateQueueUI();
+      }
+
+      function updateQueueUI() {
+        const card = document.getElementById("queue-card");
+        const grid = document.getElementById("queue-grid");
+        const count = document.getElementById("queue-count");
+        count.textContent = selectedQueue.length;
+        if (selectedQueue.length === 0) {
+          card.style.display = "none";
+          return;
+        }
+        card.style.display = "block";
+        grid.innerHTML = "";
+        selectedQueue.forEach((item, i) => {
+          const el = document.createElement("div");
+          el.className = "queue-item";
+          el.innerHTML = `<img src="${item.thumbUrl}" alt="${item.name}"><button class="remove" onclick="removeFromQueue(${i})">×</button>`;
+          el.title = item.name;
+          grid.appendChild(el);
+        });
+        // Show/hide share all button based on Web Share support
+        const shareOk = !!navigator.share && !!navigator.canShare;
+        document.getElementById("share-all-btn").style.display = shareOk ? "" : "none";
+        document.getElementById("share-hint").style.display = shareOk ? "" : "none";
+        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      function removeFromQueue(idx) {
+        const removed = selectedQueue.splice(idx, 1)[0];
+        updateQueueUI();
+        // Update search result cards
+        const card = document.querySelector(`.emote-card[data-emote-id="${removed.id}"]`);
+        if (card) {
+          card.classList.remove("selected");
+          card.querySelector(".check").textContent = "";
+        }
+      }
+
+      function clearQueue() {
+        selectedQueue.length = 0;
+        updateQueueUI();
+        document.querySelectorAll(".emote-card.selected").forEach(c => {
+          c.classList.remove("selected");
+          c.querySelector(".check").textContent = "";
+        });
+      }
+
+      // ── Download all as ZIP ──────────────────────────────────────────────────────
+      async function downloadAllZip() {
+        if (!selectedQueue.length) return;
+        st(`⟳ Descargando ${selectedQueue.length} emotes...`, "run");
+        const zip = new JSZip();
+        const folder = zip.folder("7tv_stickers");
+        let done = 0, errors = 0;
+        for (const item of selectedQueue) {
+          try {
+            st(`⟳ Procesando ${done+1}/${selectedQueue.length}: ${item.name}...`, "run");
+            // First fetch best quality to check if animated
+            const buf = await fetchEmoteBuffer(item.emoteData, "best");
+            const isAnim = isAnimatedGif(buf) || isAnimatedWebp(buf);
+            if (isAnim) {
+              // Animated: download as GIF — try to get GIF from 7TV first
+              const gifBuf = await fetchEmoteBuffer(item.emoteData, "gif");
+              folder.file(`${item.name}.gif`, gifBuf);
+            } else {
+              // Static: convert to PNG 512x512 via canvas
+              const pngBlob = await convertToPng(buf);
+              folder.file(`${item.name}.png`, pngBlob);
+            }
+            done++;
+          } catch (e) {
+            console.error(`Error con ${item.name}:`, e);
+            errors++;
+          }
+        }
+        if (done === 0) {
+          st(`✗ No se pudo descargar ningún emote`, "err");
+          return;
+        }
+        st("⟳ Generando ZIP...", "run");
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(zipBlob);
+        a.download = "7tv_stickers.zip";
+        a.click();
+        const errMsg = errors > 0 ? ` (${errors} fallidos)` : "";
+        st(`✓ ${done} stickers descargados en ZIP${errMsg}`, "ok");
+      }
+
+      // mode: "best" = largest WEBP/PNG, "gif" = prefer GIF format, "static" = prefer PNG
+      async function fetchEmoteBuffer(emoteData, mode = "best") {
+        const base = emoteData.host?.url || "";
+        const files = emoteData.host?.files || [];
+        let sorted;
+        if (mode === "gif") {
+          // For animated: prefer GIF format, then WEBP
+          const order = { GIF: 0, WEBP: 1, PNG: 2 };
+          sorted = [...files].sort((a, b) => (order[a.format] ?? 9) - (order[b.format] ?? 9) || b.width - a.width);
+        } else {
+          // For static/best: prefer WEBP, then PNG
+          const order = { WEBP: 0, PNG: 1, GIF: 2 };
+          sorted = [...files].sort((a, b) => (order[a.format] ?? 9) - (order[b.format] ?? 9) || b.width - a.width);
+        }
+        if (!sorted.length) throw new Error("Sin archivos");
+        const directUrl = (base.startsWith("//") ? "https:" + base : base) + "/" + sorted[0].name;
+        try {
+          const r = await fetch(directUrl);
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return await r.arrayBuffer();
+        } catch (e) {
+          const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
+          const r2 = await fetch(proxy);
+          if (!r2.ok) throw new Error("proxy " + r2.status);
+          return await r2.arrayBuffer();
+        }
+      }
+
+      function convertToPng(buf) {
+        return new Promise((res, rej) => {
+          const img = new Image();
+          img.onload = () => {
+            const cv = document.createElement("canvas");
+            cv.width = 512; cv.height = 512;
+            const ctx = cv.getContext("2d");
+            ctx.clearRect(0, 0, 512, 512);
+            const scale = Math.min(512 / img.naturalWidth, 512 / img.naturalHeight);
+            const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+            ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+            URL.revokeObjectURL(img.src);
+            cv.toBlob(b => b ? res(b) : rej(new Error("toBlob fail")), "image/png");
+          };
+          img.onerror = () => rej(new Error("img load fail"));
+          img.src = URL.createObjectURL(new Blob([buf]));
+        });
+      }
+
+      async function loadEmoteById(id, name) {
+        st("⟳ Cargando " + name + "...", "run");
+        try {
+          const res = await fetch(`https://7tv.io/v3/emotes/${id}`);
+          if (!res.ok) throw new Error("API " + res.status);
+          const d = await res.json();
+          const data = await fetchEmoteBuffer(d);
+          fname = name;
+          await processBuffer(data);
+        } catch (e) {
+          st("Error: " + e.message, "err");
+        }
+      }
+
+      // ── Dropzone ─────────────────────────────────────────────────────────────────
+      const dz = document.getElementById("dropzone");
+      dz.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dz.classList.add("over");
+      });
+      dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+      dz.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dz.classList.remove("over");
+        const f = e.dataTransfer.files[0];
+        if (f) processFile(f);
+      });
+
+      function fromFile(e) {
+        const f = e.target.files[0];
+        if (f) processFile(f);
+      }
+
+      // ── Status ───────────────────────────────────────────────────────────────────
+      function st(msg, cls = "") {
+        const el = document.getElementById("status");
+        el.textContent = msg;
+        el.className = cls;
+      }
+
+      // ── Load from URL ─────────────────────────────────────────────────────────────
+      async function fromUrl() {
+        const raw = document.getElementById("url-in").value.trim();
+        if (!raw) {
+          st("Pega un link primero.", "err");
+          return;
+        }
+        document.getElementById("cors-note").style.display = "none";
+        st("⟳ Resolviendo URL...", "run");
+
+        let directUrl = "",
+          name = "emote";
+
+        // Página 7TV → API
+        const m = raw.match(/7tv\.app\/emotes\/([a-f0-9]+)/i);
+        if (m) {
+          try {
+            const res = await fetch(`https://7tv.io/v3/emotes/${m[1]}`, {
+              headers: { "User-Agent": "Mozilla/5.0" },
+            });
+            if (!res.ok) throw new Error("API " + res.status);
+            const d = await res.json();
+            name = d.name || m[1];
+            const base = d.host?.url || "";
+            const files = d.host?.files || [];
+            const order = { GIF: 0, WEBP: 1, PNG: 2 };
+            files.sort(
+              (a, b) =>
+                (order[a.format] ?? 9) - (order[b.format] ?? 9) ||
+                b.width - a.width,
+            );
+            if (!files.length) throw new Error("Sin archivos");
+            directUrl = (base.startsWith("//") ? "https:" + base : base) + "/" + files[0].name;
+          } catch (e) {
+            st("Error en API de 7TV: " + e.message, "err");
+            return;
+          }
+        } else {
+          directUrl = raw;
+          name =
+            raw
+              .split("/")
+              .pop()
+              .split("?")[0]
+              .replace(/\.[^.]+$/, "") || "emote";
+        }
+
+        st("⟳ Descargando emote...", "run");
+
+        // Fetch directo (funciona si el CDN tiene CORS abierto, que 7TV tiene)
+        let data;
+        try {
+          const r = await fetch(directUrl);
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          data = await r.arrayBuffer();
+        } catch (e) {
+          // Fallback: proxy abierto
+          try {
+            const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
+            const r2 = await fetch(proxy);
+            if (!r2.ok) throw new Error("proxy " + r2.status);
+            data = await r2.arrayBuffer();
+          } catch (e2) {
+            st("No se pudo descargar (CORS).", "err");
+            document.getElementById("cors-note").style.display = "";
+            return;
+          }
+        }
+
+        fname = name;
+        await processBuffer(data);
+      }
+
+      // ── Process file ──────────────────────────────────────────────────────────────
+      function processFile(file) {
+        fname = file.name.replace(/\.[^.]+$/, "");
+        file.arrayBuffer().then((buf) => processBuffer(buf));
+      }
+
+      // ── Detect animated GIF ───────────────────────────────────────────────────────
+      function isAnimatedGif(buf) {
+        const bytes = new Uint8Array(buf);
+        if (bytes[0] !== 0x47 || bytes[1] !== 0x49 || bytes[2] !== 0x46) return false;
+        const limit = Math.min(bytes.length, 2 * 1024 * 1024);
+        let frames = 0;
+        for (let i = 0; i < limit - 1; i++) {
+          if (bytes[i] === 0x00 && bytes[i + 1] === 0x21 && bytes[i + 2] === 0xf9) frames++;
+          if (frames > 1) return true;
+        }
+        return false;
+      }
+
+      // ── Detect animated WEBP ──────────────────────────────────────────────────────
+      function isAnimatedWebp(buf) {
+        const bytes = new Uint8Array(buf);
+        // RIFF header check
+        if (bytes[0] !== 0x52 || bytes[1] !== 0x49 || bytes[2] !== 0x46 || bytes[3] !== 0x46) return false;
+        // WEBP signature
+        if (bytes[8] !== 0x57 || bytes[9] !== 0x45 || bytes[10] !== 0x42 || bytes[11] !== 0x50) return false;
+        // Look for ANIM or ANMF chunks indicating animation
+        const text = new TextDecoder('ascii').decode(bytes.slice(0, Math.min(bytes.length, 100)));
+        // Also search further in for ANMF chunks
+        for (let i = 12; i < Math.min(bytes.length - 4, 1024 * 100); i++) {
+          if (bytes[i] === 0x41 && bytes[i+1] === 0x4E && bytes[i+2] === 0x4D && (bytes[i+3] === 0x46 || bytes[i+3] === 0x20)) return true;
+        }
+        return false;
+      }
+
+      // ── Process buffer ────────────────────────────────────────────────────────────
+      async function processBuffer(buf) {
+        st("⟳ Convirtiendo...", "run");
+        animated = isAnimatedGif(buf) || isAnimatedWebp(buf);
+
+        const raw = new Blob([buf]);
+        const url = URL.createObjectURL(raw);
+
+        if (animated) {
+          await handleGif(url, buf);
+        } else {
+          await handleStatic(url, buf);
+        }
+      }
+
+      // ── Static image → canvas 512×512 → PNG blob ────────────────────────────────
+      function handleStatic(url, buf) {
+        return new Promise((res, rej) => {
+          const img = new Image();
+          img.onload = () => {
+            const cv = document.getElementById("prev-canvas");
+            cv.width = 512;
+            cv.height = 512;
+            const ctx = cv.getContext("2d");
+            ctx.clearRect(0, 0, 512, 512);
+            const scale = Math.min(
+              512 / img.naturalWidth,
+              512 / img.naturalHeight,
+            );
+            const w = img.naturalWidth * scale,
+              h = img.naturalHeight * scale;
+            ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+            URL.revokeObjectURL(url);
+
+            cv.toBlob(
+              (b) => {
+                blob = b;
+                showPreview(cv.toDataURL(), false, b.size);
+                st("✓ Sticker listo (PNG)", "ok");
+                res();
+              },
+              "image/png",
+            );
+          };
+          img.onerror = () => {
+            st("No se pudo leer la imagen.", "err");
+            rej();
+          };
+          img.src = url;
+        });
+      }
+
+      // ── Animated image — detect type, preserve original ────────────────────────────
+      async function handleGif(url, buf) {
+        const img = document.getElementById("prev-img");
+        img.src = url;
+        img.style.display = "";
+        document.getElementById("prev-canvas").style.display = "none";
+
+        // Detect correct mime type
+        const bytes = new Uint8Array(buf);
+        let mimeType = "image/gif";
+        if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+            bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+          mimeType = "image/webp";
+        }
+
+        blob = new Blob([buf], { type: mimeType });
+        animated = true;
+        const label = mimeType === "image/webp" ? "WEBP animado" : "GIF animado";
+        showPreview(null, true, blob.size);
+        st("✓ " + label + " listo", "ok");
+      }
+
+      // ── Show preview UI ───────────────────────────────────────────────────────────
+      function showPreview(dataUrl, isAnim, size) {
+        const card = document.getElementById("preview-card");
+        card.style.display = "block";
+
+        const cv = document.getElementById("prev-canvas");
+        const img = document.getElementById("prev-img");
+
+        if (!isAnim) {
+          cv.style.display = "";
+          img.style.display = "none";
+        }
+
+        const kb = (size / 1024).toFixed(1);
+        document.getElementById("frame-badge").textContent = kb + " KB";
+
+        const over = (!isAnim && size > 500000) || (isAnim && size > 1000000);
+        document.getElementById("meta").innerHTML = `
+    <b>Formato:</b> ${isAnim ? "GIF/WEBP animado" : "PNG estático 512×512"}<br>
+    <b>Tamaño:</b> ${isAnim ? "original" : "512 × 512 px"}<br>
+    <b>Peso:</b> ${kb} KB
+    <span class="${over ? "warn" : "ok"}">${over ? "⚠ puede superar límite WA" : "✓ OK"}</span>
+  `;
+
+        // Web Share disponible?
+        const shareOk = !!navigator.share && !!navigator.canShare;
+        document.getElementById("share-btn").style.display = shareOk
+          ? ""
+          : "none";
+        document.getElementById("share-fallback").style.display = shareOk
+          ? "none"
+          : "";
+
+        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+      // ── Download ──────────────────────────────────────────────────────────────────
+      function download() {
+        if (!blob) return;
+        let ext = "png";
+        if (blob.type === "image/gif") ext = "gif";
+        else if (blob.type === "image/webp") ext = "webp";
+        else if (blob.type === "image/png") ext = "png";
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `sticker_${fname}.${ext}`;
+        a.click();
+      }
+
+      // ── Convert buffer to WEBP 512×512 blob (for WA sticker without border) ────────
+      function convertToWebp512(buf) {
+        return new Promise((res, rej) => {
+          const img = new Image();
+          img.onload = () => {
+            const cv = document.createElement("canvas");
+            cv.width = 512; cv.height = 512;
+            const ctx = cv.getContext("2d");
+            ctx.clearRect(0, 0, 512, 512);
+            const scale = Math.min(512 / img.naturalWidth, 512 / img.naturalHeight);
+            const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+            ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
+            URL.revokeObjectURL(img.src);
+            cv.toBlob(b => b ? res(b) : rej(new Error("toBlob fail")), "image/webp", 0.95);
+          };
+          img.onerror = () => rej(new Error("img load fail"));
+          img.src = URL.createObjectURL(new Blob([buf]));
+        });
+      }
+
+      // ── Web Share → WhatsApp (single sticker) ──────────────────────────────────────
+      async function shareToWA() {
+        if (!blob) return;
+        try {
+          // Always convert to WEBP 512x512 for WA sticker (no white border)
+          let shareBlob = blob;
+          if (blob.type !== "image/webp") {
+            const buf = await blob.arrayBuffer();
+            shareBlob = await convertToWebp512(buf);
+          }
+          const file = new File([shareBlob], `sticker_${fname}.webp`, { type: "image/webp" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: fname });
+            st("✓ Compartido — elige WhatsApp > Agregar a stickers", "ok");
+          } else {
+            st("Tu navegador no soporta compartir este archivo.", "err");
+          }
+        } catch (e) {
+          if (e.name !== "AbortError")
+            st("Error al compartir: " + e.message, "err");
+        }
+      }
+
+      // ── Share all selected emotes to WA one by one ────────────────────────────
+      async function shareAllToWA() {
+        if (!selectedQueue.length) return;
+        const total = selectedQueue.length;
+        const progWrap = document.getElementById("progress-wrap");
+        const progBar = document.getElementById("progress-bar");
+        progWrap.style.display = "";
+        progBar.style.width = "0%";
+        let done = 0, errors = 0;
+        for (const item of selectedQueue) {
+          try {
+            st(`⟳ Preparando ${done+1}/${total}: ${item.name}...`, "run");
+            const buf = await fetchEmoteBuffer(item.emoteData, "best");
+            const webpBlob = await convertToWebp512(buf);
+            const file = new File([webpBlob], `sticker_${item.name}.webp`, { type: "image/webp" });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], title: item.name });
+              done++;
+            } else {
+              errors++;
+            }
+          } catch (e) {
+            if (e.name === "AbortError") {
+              // User cancelled — skip this one but continue
+              done++;
+            } else {
+              console.error(`Error sharing ${item.name}:`, e);
+              errors++;
+            }
+          }
+          progBar.style.width = `${((done + errors) / total) * 100}%`;
+        }
+        progWrap.style.display = "none";
+        const errMsg = errors > 0 ? ` (${errors} fallidos)` : "";
+        st(`✓ ${done} stickers compartidos${errMsg}`, "ok");
+      }
+
+      // ── Reset ─────────────────────────────────────────────────────────────────────
+      function reset() {
+        blob = null;
+        animated = false;
+        fname = "sticker";
+        document.getElementById("preview-card").style.display = "none";
+        document.getElementById("cors-note").style.display = "none";
+        document.getElementById("url-in").value = "";
+        document.getElementById("search-in").value = "";
+        document.getElementById("search-results").innerHTML = "";
+        // Clear queue
+        selectedQueue.length = 0;
+        updateQueueUI();
+        // Reemplazar el input file con un clon para limpiar correctamente en todos los navegadores
+        const fi = document.getElementById("file-in");
+        const clone = fi.cloneNode(true);
+        clone.addEventListener("change", fromFile);
+        fi.replaceWith(clone);
+        const img = document.getElementById("prev-img");
+        img.src = "";
+        img.style.display = "none";
+        document.getElementById("prev-canvas").style.display = "none";
+        st("");
+      }
+    </script>
+  </body>
+</html>
