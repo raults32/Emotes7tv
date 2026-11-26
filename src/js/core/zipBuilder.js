@@ -21,6 +21,26 @@ import {
 import { createYieldBudget } from "./scheduler.js";
 import { fetchEmoteAssetBuffer } from "../services/sevenTvApi.js";
 
+const WIN_RESERVED_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+
+/**
+ * Prevents Zip-Slip / path traversal, control characters, and Windows reserved
+ * device names in generated ZIP / .wastickers entries and download filenames.
+ */
+export function sanitizeSafeFileStem(raw, fallback = "sticker") {
+  let clean = String(raw || "")
+    .replace(/[\x00-\x1f\x7f\\/:*?"<>|]+/g, "_")
+    .replace(/\s+/g, "_")
+    .replace(/^\.+|\.+$/g, "")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 64);
+
+  if (!clean || WIN_RESERVED_RE.test(clean)) {
+    clean = fallback;
+  }
+  return clean;
+}
+
 function chunkArray(items, chunkSize = 30) {
   const chunks = [];
   for (let i = 0; i < items.length; i += chunkSize) {
@@ -139,7 +159,7 @@ export async function buildPackZipBlob({
     });
 
     try {
-      const safeBase = (item.name || "sticker").replace(/[\\/:*?"<>|]/g, "_");
+      const safeBase = sanitizeSafeFileStem(item.name, "sticker");
       const seen = usedNames.get(safeBase) || 0;
       usedNames.set(safeBase, seen + 1);
       const finalName = seen > 0 ? `${safeBase}_${seen}` : safeBase;
@@ -272,7 +292,6 @@ export async function buildWastickersArchives({
     classified.push({ item, isAnim });
   }
 
-  // Pad to 3 if `autoPadUnder3` is enabled and user dropped 1 or 2 PNGs
   while (classified.length < 3) {
     classified.push(classified[classified.length - 1]);
   }
@@ -422,16 +441,16 @@ export async function buildWastickersArchives({
     if (addedInGroup === 0) continue;
 
     const rawZipBlob = await zip.generateAsync({ type: "blob" });
-    const safeFileSlug = group.packTitle
-      .replace(/[\\/:*?"<>|]+/g, "")
-      .replace(/\s+/g, "_")
-      .slice(0, 48);
+    const safeFileSlug = sanitizeSafeFileStem(group.packTitle, "7tv_pack").slice(
+      0,
+      48
+    );
 
     const wastickersBlob = new Blob([rawZipBlob], {
       type: "application/octet-stream",
     });
     archives.push({
-      fileName: `${safeFileSlug || "7tv_pack"}.wastickers`,
+      fileName: `${safeFileSlug}.wastickers`,
       packTitle: group.packTitle,
       count: addedInGroup,
       packType: group.packType,
@@ -455,8 +474,19 @@ export async function buildWastickersArchives({
  */
 export async function bundleArchivesIntoMasterZip(archives) {
   const zip = new window.JSZip();
+  const used = new Set();
   for (const arch of archives) {
-    zip.file(arch.fileName, arch.blob);
+    const base = sanitizeSafeFileStem(
+      String(arch.fileName || "pack").replace(/\.wastickers$/i, ""),
+      "7tv_pack"
+    );
+    let candidate = `${base}.wastickers`;
+    let n = 1;
+    while (used.has(candidate)) {
+      candidate = `${base}_${n++}.wastickers`;
+    }
+    used.add(candidate);
+    zip.file(candidate, arch.blob);
   }
   return zip.generateAsync({ type: "blob" });
 }
@@ -502,10 +532,7 @@ export async function shareQueueBatchToWA({
           98_000
         );
       }
-      const safeName = (item.name || `sticker_${i + 1}`).replace(
-        /[\\/:*?"<>|]/g,
-        "_"
-      );
+      const safeName = sanitizeSafeFileStem(item.name, `sticker_${i + 1}`);
       files.push(
         new File([blob], `sticker_${safeName}.webp`, { type: "image/webp" })
       );

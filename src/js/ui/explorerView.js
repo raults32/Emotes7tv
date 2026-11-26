@@ -7,7 +7,9 @@ import {
   fetchSevenTvEmoteById,
   fetchEmoteAssetBuffer,
   fetchUrlArrayBuffer,
+  sanitizePublicHttpUrl,
 } from "../services/sevenTvApi.js";
+import { sanitizeSafeFileStem } from "../core/zipBuilder.js";
 import { setStatus, showToast } from "./notifications.js";
 import { selectTabById } from "./tabs.js";
 
@@ -27,13 +29,13 @@ export function initExplorerView({ onLoadBufferInStudio }) {
 
   async function openEmoteInStudio(em, announce = true) {
     store.setActiveEmote(em.id, em);
-    if (announce) setStatus(`⟳ Cargando ${em.name} en alta resolución…`, "run");
+    if (announce) setStatus(`Cargando ${em.name} en alta resolución…`, "run");
     try {
       const buf = await fetchEmoteAssetBuffer(em, "best");
       await onLoadBufferInStudio(buf, em.name, em);
       store.pushRecent(em);
       if (announce) {
-        setStatus(`✓ Editando "${em.name}" en el Sticker Studio`, "ok");
+        setStatus(`Editando "${em.name}" en el Sticker Studio`, "ok");
       }
     } catch (err) {
       setStatus(`Error al cargar ${em.name}: ${err.message}`, "err");
@@ -63,14 +65,42 @@ export function initExplorerView({ onLoadBufferInStudio }) {
         (inPack ? " in-pack" : "") +
         (isActive ? " active-studio" : "");
       tile.dataset.emoteId = em.id;
-      tile.tabIndex = 0;
-      tile.setAttribute("role", "button");
-      tile.setAttribute("aria-label", `Abrir emote ${em.name} en el editor`);
+
+      const openBtn = document.createElement("button");
+      openBtn.type = "button";
+      openBtn.className = "emote-open-btn";
+      openBtn.setAttribute("aria-label", `Abrir emote ${em.name} en el editor`);
+
+      const thumbWrap = document.createElement("div");
+      thumbWrap.className = "emote-thumb-wrap";
+      const img = document.createElement("img");
+      img.src = sanitizePublicHttpUrl(em.thumbUrl);
+      img.alt = "";
+      img.width = 64;
+      img.height = 64;
+      img.loading = "lazy";
+      img.decoding = "async";
+      thumbWrap.appendChild(img);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "emote-name";
+      nameSpan.textContent = em.name;
+
+      openBtn.append(thumbWrap, nameSpan);
+
+      openBtn.addEventListener("click", () => {
+        const multiMode = document.getElementById("multiselect-mode")?.checked;
+        if (multiMode && containerId === "explore-grid") {
+          store.togglePackItem(em);
+        } else {
+          openEmoteInStudio(em, true);
+        }
+      });
 
       const favBtn = document.createElement("button");
       favBtn.type = "button";
-      favBtn.className = "tile-btn tile-fav" + (isFav ? " active" : "");
-      favBtn.textContent = isFav ? "★" : "☆";
+      favBtn.className = "icon tile-btn tile-fav" + (isFav ? " active" : "");
+      favBtn.setAttribute("aria-pressed", String(isFav));
       favBtn.setAttribute(
         "aria-label",
         `${isFav ? "Quitar" : "Guardar"} ${em.name} en favoritos`
@@ -80,15 +110,15 @@ export function initExplorerView({ onLoadBufferInStudio }) {
         const added = store.toggleFavorite(em);
         showToast(
           added
-            ? `⭐ Guardado en favoritos: ${em.name}`
+            ? `Guardado en favoritos: ${em.name}`
             : `Quitado de favoritos: ${em.name}`
         );
       });
 
       const packBtn = document.createElement("button");
       packBtn.type = "button";
-      packBtn.className = "tile-btn tile-pack";
-      packBtn.textContent = inPack ? "✓" : "+";
+      packBtn.className = "icon tile-btn tile-pack";
+      packBtn.setAttribute("aria-pressed", String(inPack));
       packBtn.setAttribute(
         "aria-label",
         `${inPack ? "Quitar" : "Añadir"} ${em.name} al pack`
@@ -98,15 +128,7 @@ export function initExplorerView({ onLoadBufferInStudio }) {
         store.togglePackItem(em);
       });
 
-      const thumbWrap = document.createElement("div");
-      thumbWrap.className = "emote-thumb-wrap";
-      const img = document.createElement("img");
-      img.src = em.thumbUrl;
-      img.alt = em.name;
-      img.width = 64;
-      img.height = 64;
-      img.loading = "lazy";
-      thumbWrap.appendChild(img);
+      tile.append(openBtn, favBtn, packBtn);
 
       if (em.animated) {
         const animBadge = document.createElement("span");
@@ -114,29 +136,6 @@ export function initExplorerView({ onLoadBufferInStudio }) {
         animBadge.textContent = "ANIM";
         tile.appendChild(animBadge);
       }
-
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "emote-name";
-      nameSpan.textContent = em.name;
-
-      tile.append(favBtn, packBtn, thumbWrap, nameSpan);
-
-      const onActivate = () => {
-        const multiMode = document.getElementById("multiselect-mode")?.checked;
-        if (multiMode && containerId === "explore-grid") {
-          store.togglePackItem(em);
-        } else {
-          openEmoteInStudio(em, true);
-        }
-      };
-
-      tile.addEventListener("click", onActivate);
-      tile.addEventListener("keydown", (e) => {
-        if ((e.key === "Enter" || e.key === " ") && e.target === tile) {
-          e.preventDefault();
-          onActivate();
-        }
-      });
 
       return tile;
     });
@@ -149,16 +148,27 @@ export function initExplorerView({ onLoadBufferInStudio }) {
       const id = tile.dataset.emoteId;
       const inPack = state.packQueue.some((p) => p.id === id);
       const isFav = state.favorites.some((f) => f.id === id);
+      const name = tile.querySelector(".emote-name")?.textContent || "emote";
       tile.classList.toggle("in-pack", inPack);
       tile.classList.toggle("active-studio", state.activeId === id);
 
       const pBtn = tile.querySelector(".tile-pack");
-      if (pBtn) pBtn.textContent = inPack ? "✓" : "+";
+      if (pBtn) {
+        pBtn.setAttribute("aria-pressed", String(inPack));
+        pBtn.setAttribute(
+          "aria-label",
+          `${inPack ? "Quitar" : "Añadir"} ${name} al pack`
+        );
+      }
 
       const fBtn = tile.querySelector(".tile-fav");
       if (fBtn) {
         fBtn.classList.toggle("active", isFav);
-        fBtn.textContent = isFav ? "★" : "☆";
+        fBtn.setAttribute("aria-pressed", String(isFav));
+        fBtn.setAttribute(
+          "aria-label",
+          `${isFav ? "Quitar" : "Guardar"} ${name} en favoritos`
+        );
       }
     });
   }
@@ -188,8 +198,8 @@ export function initExplorerView({ onLoadBufferInStudio }) {
 
     setStatus(
       state.exploreQuery
-        ? `⟳ Buscando "${state.exploreQuery}" en 7TV…`
-        : "⟳ Cargando emotes populares de 7TV…",
+        ? `Buscando "${state.exploreQuery}" en 7TV…`
+        : "Cargando emotes populares de 7TV…",
       "run"
     );
 
@@ -214,7 +224,7 @@ export function initExplorerView({ onLoadBufferInStudio }) {
         setStatus("No se encontraron emotes con esos filtros.", "err");
       } else {
         setStatus(
-          `✓ ${state.exploreItems.length} emotes listos — clic para editar en el Studio o [+] para armar un Pack`,
+          `${state.exploreItems.length} emotes listos — clic para editar en el Studio o [+] para armar un Pack`,
           "ok"
         );
         if (!state.rawBuffer && state.exploreItems[0]) {
@@ -231,19 +241,21 @@ export function initExplorerView({ onLoadBufferInStudio }) {
   attachImeSafeEnter(searchIn, exploreForm);
   exploreForm?.addEventListener("submit", (e) => {
     e.preventDefault();
-    document
-      .querySelectorAll(".chips-row .chip")
-      .forEach((c) => c.classList.remove("active"));
+    document.querySelectorAll(".chips-row .chip").forEach((c) => {
+      c.classList.remove("active");
+      c.setAttribute("aria-pressed", "false");
+    });
     state.exploreQuery = searchIn.value.trim();
     runExploreSearch(true);
   });
 
   document.querySelectorAll(".chips-row .chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      document
-        .querySelectorAll(".chips-row .chip")
-        .forEach((c) => c.classList.remove("active"));
-      chip.classList.add("active");
+      document.querySelectorAll(".chips-row .chip").forEach((c) => {
+        const active = c === chip;
+        c.classList.toggle("active", active);
+        c.setAttribute("aria-pressed", String(active));
+      });
       const preset = chip.dataset.preset ?? "";
       if (searchIn) searchIn.value = preset;
       state.exploreQuery = preset;
@@ -268,14 +280,14 @@ export function initExplorerView({ onLoadBufferInStudio }) {
       const added = store.addManyToPack(state.exploreItems);
       showToast(
         added
-          ? `➕ ${added} emotes añadidos al Pack`
+          ? `${added} emotes añadidos al Pack`
           : "Todos ya estaban en el Pack"
       );
     });
 
   // ── 2. Channels & Emote Sets ───────────────────────────────────────────────
   async function loadEmoteSetById(setId, customTitle = "") {
-    setStatus("⟳ Cargando Emote Set…", "run");
+    setStatus("Cargando Emote Set…", "run");
     try {
       const { name, emotes } = await fetchSevenTvEmoteSet(setId);
       state.loadedSetItems = emotes;
@@ -291,7 +303,7 @@ export function initExplorerView({ onLoadBufferInStudio }) {
       }
 
       renderEmoteGrid("set-grid", emotes);
-      setStatus(`✓ ${emotes.length} emotes cargados de ${label}`, "ok");
+      setStatus(`${emotes.length} emotes cargados de ${label}`, "ok");
     } catch (err) {
       setStatus(`No se pudo cargar el Emote Set: ${err.message}`, "err");
     }
@@ -308,7 +320,7 @@ export function initExplorerView({ onLoadBufferInStudio }) {
       return;
     }
     try {
-      setStatus("⟳ Obteniendo perfil de 7TV…", "run");
+      setStatus("Obteniendo perfil de 7TV…", "run");
       const fullUser = await fetchSevenTvUserById(user.id);
       const conn = (fullUser.connections || []).find((c) => c.emote_set_id);
       const fallbackSetId = conn?.emote_set_id || fullUser.emote_sets?.[0]?.id;
@@ -331,14 +343,14 @@ export function initExplorerView({ onLoadBufferInStudio }) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "channel-pill";
-      if (u.avatar_url) {
+      const safeAvatar = sanitizePublicHttpUrl(u.avatar_url);
+      if (safeAvatar) {
         const avatar = document.createElement("img");
-        avatar.src = u.avatar_url.startsWith("//")
-          ? "https:" + u.avatar_url
-          : u.avatar_url;
+        avatar.src = safeAvatar;
         avatar.alt = "";
         avatar.width = 20;
         avatar.height = 20;
+        avatar.loading = "lazy";
         btn.appendChild(avatar);
       }
       const span = document.createElement("span");
@@ -362,19 +374,19 @@ export function initExplorerView({ onLoadBufferInStudio }) {
     }
     document.getElementById("channel-matches")?.replaceChildren();
 
-    const setMatch = raw.match(/emote-sets\/([a-z0-9]+)/i);
+    const setMatch = raw.match(/emote-sets\/([a-z0-9_-]+)/i);
     if (setMatch) {
       await loadEmoteSetById(setMatch[1]);
       return;
     }
 
-    const userMatch = raw.match(/7tv\.app\/users\/([a-z0-9]+)/i);
+    const userMatch = raw.match(/7tv\.app\/users\/([a-z0-9_-]+)/i);
     if (userMatch) {
       await selectChannelUser({ id: userMatch[1] });
       return;
     }
 
-    setStatus(`⟳ Buscando canal "${raw}" en 7TV…`, "run");
+    setStatus(`Buscando canal "${raw}" en 7TV…`, "run");
     try {
       const users = await searchSevenTvUsers(raw);
       if (!users.length) {
@@ -414,7 +426,7 @@ export function initExplorerView({ onLoadBufferInStudio }) {
       const added = store.addManyToPack(targetList);
       showToast(
         added
-          ? `➕ ${added} emotes añadidos al Pack`
+          ? `${added} emotes añadidos al Pack`
           : "Todos ya estaban en el Pack"
       );
     });
@@ -423,7 +435,7 @@ export function initExplorerView({ onLoadBufferInStudio }) {
   async function loadFromAnyUrl(raw) {
     document.getElementById("cors-note")?.classList.add("is-hidden");
 
-    const setMatch = raw.match(/7tv\.app\/emote-sets\/([a-z0-9]+)/i);
+    const setMatch = raw.match(/7tv\.app\/emote-sets\/([a-z0-9_-]+)/i);
     if (setMatch) {
       selectTabById("tab-sets", false);
       if (setIn) setIn.value = raw;
@@ -431,27 +443,33 @@ export function initExplorerView({ onLoadBufferInStudio }) {
       return;
     }
 
-    const emoteMatch = raw.match(/7tv\.app\/emotes\/([a-z0-9]+)/i);
+    const emoteMatch = raw.match(/7tv\.app\/emotes\/([a-z0-9_-]+)/i);
     if (emoteMatch) {
-      setStatus("⟳ Obteniendo emote desde la API de 7TV…", "run");
+      setStatus("Obteniendo emote desde la API de 7TV…", "run");
       try {
         const em = await fetchSevenTvEmoteById(emoteMatch[1]);
         await openEmoteInStudio(em, true);
-        showToast(`✓ Emote "${em.name}" importado`);
+        showToast(`Emote "${em.name}" importado`);
       } catch (err) {
         setStatus(`Error en API de 7TV: ${err.message}`, "err");
       }
       return;
     }
 
-    setStatus("⟳ Descargando imagen desde URL…", "run");
+    const safeTarget = sanitizePublicHttpUrl(raw);
+    if (!safeTarget) {
+      setStatus("Introduce un enlace público HTTPS válido.", "err");
+      return;
+    }
+
+    setStatus("Descargando imagen desde URL…", "run");
     try {
-      const buf = await fetchUrlArrayBuffer(raw);
-      const cleanName =
-        raw.split("/").pop().split("?")[0].replace(/\.[^.]+$/, "") || "sticker";
+      const buf = await fetchUrlArrayBuffer(safeTarget);
+      const rawLeaf = safeTarget.split("/").pop().split("?")[0].replace(/\.[^.]+$/, "");
+      const cleanName = sanitizeSafeFileStem(rawLeaf, "sticker");
       store.setActiveEmote(null, null);
       await onLoadBufferInStudio(buf, cleanName, null);
-      showToast("✓ Imagen cargada desde URL");
+      showToast("Imagen cargada desde URL");
     } catch {
       setStatus("No se pudo descargar la URL por políticas CORS.", "err");
       document.getElementById("cors-note")?.classList.remove("is-hidden");

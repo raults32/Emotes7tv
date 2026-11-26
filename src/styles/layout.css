@@ -1,19 +1,19 @@
 @layer layout {
   .topbar {
     position: sticky;
-    top: 0;
+    inset-block-start: 0;
     z-index: 30;
-    backdrop-filter: blur(14px);
-    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(16px) saturate(1.3);
+    background: color-mix(in oklab, var(--bg) 84%, transparent);
     border-block-end: 1px solid var(--line);
   }
 
   .topbar-inner {
-    max-inline-size: 1260px;
+    max-inline-size: 1280px;
     margin-inline: auto;
     padding: 0.75rem 1.25rem;
     display: flex;
-    align-items: center;
+    align-items: safe center;
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
@@ -26,13 +26,14 @@
     flex-wrap: wrap;
   }
 
+  /* WCAG 1.4.4 compliant clamp() combining rem + vw with max <= 2.5x min */
   .logo {
     font-family: var(--font-display);
-    font-size: clamp(1.9rem, 4vw, 2.5rem);
+    font-size: clamp(1.7rem, 1.2rem + 2vw, 2.5rem);
     font-weight: 400;
     letter-spacing: 0.05em;
     line-height: 1;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--green) 100%);
+    background: linear-gradient(135deg var(--in-oklch), var(--accent) 0%, var(--green) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -40,9 +41,9 @@
 
   .brand-tag {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     color: var(--text-soft);
-    padding: 0.2rem 0.55rem;
+    padding: 0.22rem 0.6rem;
     border-radius: 999px;
     border: 1px solid var(--line);
     background: var(--bg-elevated);
@@ -53,10 +54,11 @@
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+    flex-wrap: balance;
   }
 
   .status-strip {
-    max-inline-size: 1260px;
+    max-inline-size: 1280px;
     inline-size: 100%;
     margin: 0.85rem auto 0;
     padding-inline: 1.25rem;
@@ -67,7 +69,7 @@
   .workspace {
     position: relative;
     z-index: 1;
-    max-inline-size: 1260px;
+    max-inline-size: 1280px;
     inline-size: 100%;
     margin: 1rem auto 0;
     padding-inline: 1.25rem;
@@ -79,7 +81,7 @@
 
   @media (min-width: 980px) {
     .workspace {
-      grid-template-columns: minmax(0, 1.28fr) minmax(380px, 0.92fr);
+      grid-template-columns: minmax(0, 1.3fr) minmax(380px, 0.9fr);
     }
   }
 
@@ -90,7 +92,7 @@
   @media (min-width: 980px) {
     .studio-sticky {
       position: sticky;
-      top: 4.6rem;
+      inset-block-start: 4.75rem;
     }
   }
 
@@ -99,7 +101,7 @@
     z-index: 1;
     text-align: center;
     padding: 2.5rem 1rem 1rem;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     color: var(--muted);
   }
 }

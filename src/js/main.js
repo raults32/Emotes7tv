@@ -11,21 +11,7 @@ import { initBulkFolderView } from "./ui/bulkFolderView.js";
 import { initPackView } from "./ui/packView.js";
 import { showToast } from "./ui/notifications.js";
 
-async function loadProgressivePolyfills() {
-  if (!Object.hasOwn(HTMLElement.prototype, "popover")) {
-    import(
-      "https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js"
-    ).catch(() => {});
-  }
-  if (!Object.hasOwn(HTMLElement.prototype, "focusGroup")) {
-    import("https://cdn.jsdelivr.net/npm/@microsoft/focusgroup-polyfill/+esm")
-      .then((m) => m.polyfill?.())
-      .catch(() => {});
-  }
-}
-
 function bootstrap() {
-  loadProgressivePolyfills();
   initModalsAndTheme();
   initTabs("source-tablist");
 
@@ -47,7 +33,7 @@ function bootstrap() {
         if (res.kind === "image") {
           store.setActiveEmote(null, null);
           await studio.loadBufferIntoStudio(res.buffer, "portapapeles");
-          showToast("📋 Imagen pegada desde el portapapeles");
+          showToast("Imagen pegada desde el portapapeles");
         } else if (res.kind === "url") {
           await explorer.loadFromAnyUrl(res.url);
         } else {

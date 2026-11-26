@@ -3,12 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://7tv.io https://cdn.7tv.app https://api.allorigins.win https:; object-src 'none'; base-uri 'self'; form-action 'self';"
+    />
+    <meta
+      name="description"
+      content="Convierte emotes de 7TV, canales de Twitch y carpetas de PNGs en paquetes .wastickers y stickers 512×512 sin contorno blanco directo en tu navegador."
+    />
     <title>7TV Sticker Studio — Convertidor y Editor sin Contorno</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
     />
     <link rel="stylesheet" href="./src/styles/tokens.css" />
     <link rel="stylesheet" href="./src/styles/base.css" />
@@ -17,6 +28,9 @@
     <script
       defer
       src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+      integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
     ></script>
     <script type="module" src="./src/js/main.js"></script>
   </head>
@@ -33,28 +47,28 @@
         <div class="topbar-actions">
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            class="btn btn-ghost btn-sm icon-start ico-clipboard"
             id="paste-top-btn"
             aria-label="Pegar imagen o URL desde el portapapeles"
           >
-            📋 Pegar
+            Pegar
           </button>
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            class="btn btn-ghost btn-sm icon-start ico-help"
             id="open-help-btn"
             command="show-modal"
             commandfor="help-dialog"
           >
-            ❓ Cómo usar en WhatsApp
+            Cómo usar en WhatsApp
           </button>
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            class="btn btn-ghost btn-sm icon-start ico-sun"
             id="theme-toggle"
             aria-label="Cambiar tema claro u oscuro"
           >
-            ☀️ Claro
+            Claro
           </button>
         </div>
       </div>
@@ -64,7 +78,7 @@
     <div class="status-strip">
       <div class="status-pill" id="status-pill">
         <div class="status-left">
-          <span class="dot" id="status-dot"></span>
+          <span class="dot" id="status-dot" aria-hidden="true"></span>
           <span id="status-text"
             >Explora emotes en tendencia, pega un link de 7TV o arrastra tus
             imágenes.</span
@@ -95,53 +109,53 @@
             <button
               type="button"
               role="tab"
-              class="tab-item"
+              class="tab-item icon-start ico-flame"
               id="tab-explore"
               aria-selected="true"
               focusgroupstart
               data-panel="panel-explore"
             >
-              🔥 Explorar 7TV
+              Explorar 7TV
             </button>
             <button
               type="button"
               role="tab"
-              class="tab-item"
+              class="tab-item icon-start ico-tv"
               id="tab-sets"
               aria-selected="false"
               data-panel="panel-sets"
             >
-              📺 Canales / Sets
+              Canales / Sets
             </button>
             <button
               type="button"
               role="tab"
-              class="tab-item"
+              class="tab-item icon-start ico-link"
               id="tab-url"
               aria-selected="false"
               data-panel="panel-url"
             >
-              🔗 Link Directo
+              Link Directo
             </button>
             <button
               type="button"
               role="tab"
-              class="tab-item"
+              class="tab-item icon-start ico-folder"
               id="tab-upload"
               aria-selected="false"
               data-panel="panel-upload"
             >
-              📂 Carpeta / PNGs → WA
+              Carpeta / PNGs → WA
             </button>
             <button
               type="button"
               role="tab"
-              class="tab-item"
+              class="tab-item icon-start ico-star"
               id="tab-saved"
               aria-selected="false"
               data-panel="panel-saved"
             >
-              ⭐ Guardados <span class="mono" id="fav-count-badge">(0)</span>
+              Guardados <span class="mono" id="fav-count-badge">(0)</span>
             </button>
           </div>
         </div>
@@ -161,30 +175,67 @@
                     class="input-text"
                     placeholder="Buscar emote en 7TV… ej: peepoHappy, KEKW, catJAM, Aware"
                   />
-                  <button type="submit" class="btn">🔍 Buscar</button>
+                  <button type="submit" class="btn icon-start ico-search">
+                    Buscar
+                  </button>
                 </form>
 
                 <div class="chips-row" role="group" aria-label="Búsquedas rápidas">
-                  <button type="button" class="chip active" data-preset="">
-                    🔥 Top Popular
+                  <button
+                    type="button"
+                    class="chip active icon-start ico-flame"
+                    data-preset=""
+                    aria-pressed="true"
+                  >
+                    Top Popular
                   </button>
-                  <button type="button" class="chip" data-preset="peepo">
-                    🐸 Peepo
+                  <button
+                    type="button"
+                    class="chip"
+                    data-preset="peepo"
+                    aria-pressed="false"
+                  >
+                    Peepo
                   </button>
-                  <button type="button" class="chip" data-preset="cat">
-                    🐱 Gatos
+                  <button
+                    type="button"
+                    class="chip"
+                    data-preset="cat"
+                    aria-pressed="false"
+                  >
+                    Gatos
                   </button>
-                  <button type="button" class="chip" data-preset="KEKW">
-                    😂 Risas
+                  <button
+                    type="button"
+                    class="chip"
+                    data-preset="KEKW"
+                    aria-pressed="false"
+                  >
+                    Risas
                   </button>
-                  <button type="button" class="chip" data-preset="Aware">
-                    💀 Aware
+                  <button
+                    type="button"
+                    class="chip"
+                    data-preset="Aware"
+                    aria-pressed="false"
+                  >
+                    Aware
                   </button>
-                  <button type="button" class="chip" data-preset="JAM">
-                    🎵 JAM / Bailes
+                  <button
+                    type="button"
+                    class="chip"
+                    data-preset="JAM"
+                    aria-pressed="false"
+                  >
+                    JAM / Bailes
                   </button>
-                  <button type="button" class="chip" data-preset="Love">
-                    ❤️ Love
+                  <button
+                    type="button"
+                    class="chip"
+                    data-preset="Love"
+                    aria-pressed="false"
+                  >
+                    Love
                   </button>
                 </div>
 
@@ -210,10 +261,10 @@
                   <div class="filter-group">
                     <button
                       type="button"
-                      class="btn btn-ghost btn-sm"
+                      class="btn btn-ghost btn-sm icon-start ico-plus"
                       id="select-all-explore-btn"
                     >
-                      + Todos al Pack
+                      Todos al Pack
                     </button>
                   </div>
                 </div>
@@ -224,10 +275,10 @@
               <div class="load-more-row">
                 <button
                   type="button"
-                  class="btn btn-ghost btn-sm is-hidden"
+                  class="btn btn-ghost btn-sm icon-start ico-download is-hidden"
                   id="load-more-btn"
                 >
-                  ⬇ Cargar más emotes
+                  Cargar más emotes
                 </button>
               </div>
             </div>
@@ -252,13 +303,15 @@
                     class="input-text"
                     placeholder="Streamer (ej: ibai, illojuan, rubius, xqc) o link 7tv.app/emote-sets/..."
                   />
-                  <button type="submit" class="btn">📺 Cargar</button>
+                  <button type="submit" class="btn icon-start ico-tv">
+                    Cargar
+                  </button>
                   <button
                     type="button"
-                    class="btn btn-ghost"
+                    class="btn btn-ghost icon-start ico-globe"
                     id="load-global-btn"
                   >
-                    🌐 Globales
+                    Globales
                   </button>
                 </form>
 
@@ -282,10 +335,10 @@
                   </div>
                   <button
                     type="button"
-                    class="btn btn-ghost btn-sm"
+                    class="btn btn-ghost btn-sm icon-start ico-plus"
                     id="select-all-set-btn"
                   >
-                    + Añadir filtrados al Pack
+                    Añadir filtrados al Pack
                   </button>
                 </div>
               </search>
@@ -317,23 +370,25 @@
                   class="input-text"
                   placeholder="https://7tv.app/emotes/... o URL directa .webp / .gif / .png"
                 />
-                <button type="submit" class="btn">⚡ Importar</button>
+                <button type="submit" class="btn icon-start ico-bolt">
+                  Importar
+                </button>
               </form>
               <p class="helper-copy">
                 Acepta enlaces de emotes individuales de <b>7tv.app</b>, links
-                directos del CDN o cualquier imagen pública. También puedes
+                directos del CDN o cualquier imagen pública HTTPS. También puedes
                 presionar <kbd>Ctrl</kbd>+<kbd>V</kbd> en cualquier momento.
               </p>
 
               <div id="cors-note" class="cors-alert is-hidden">
                 <strong
-                  >⚠ Bloqueo CORS detectado en el servidor remoto</strong
+                  >Bloqueo CORS detectado en el servidor remoto</strong
                 >
                 <p>
                   Abre la imagen en otra pestaña, cópiala (<kbd>Ctrl</kbd>+<kbd
                     >C</kbd
                   >) y pégala aquí con <kbd>Ctrl</kbd>+<kbd>V</kbd>, o súbela
-                  desde la pestaña <b>Subir Archivos</b>.
+                  desde la pestaña <b>Carpeta / PNGs</b>.
                 </p>
               </div>
             </div>
@@ -348,15 +403,19 @@
           >
             <div class="panel-inner">
               <div class="upload-picker-bar">
-                <button type="button" class="btn" id="pick-folder-btn">
-                  📂 Subir Carpeta Completa
+                <button
+                  type="button"
+                  class="btn icon-start ico-folder"
+                  id="pick-folder-btn"
+                >
+                  Subir Carpeta Completa
                 </button>
                 <button
                   type="button"
-                  class="btn btn-ghost"
+                  class="btn btn-ghost icon-start ico-image"
                   id="pick-files-btn"
                 >
-                  🖼️ Seleccionar PNGs / Imágenes (Sin límite)
+                  Seleccionar PNGs / Imágenes (Sin límite)
                 </button>
               </div>
 
@@ -379,10 +438,10 @@
                 <input
                   type="file"
                   id="file-in"
-                  accept="image/*,.png,.gif,.webp,.avif,.jpg,.jpeg"
+                  accept="image/png,image/webp,image/gif,image/jpeg,image/avif,image/bmp,.png,.gif,.webp,.avif,.jpg,.jpeg,.bmp"
                   multiple
                 />
-                <div class="dropzone-icon" aria-hidden="true">📂</div>
+                <div class="icon dropzone-icon" aria-hidden="true"></div>
                 <div class="dropzone-title">
                   Arrastra aquí una carpeta entera o todos los PNGs que quieras
                 </div>
@@ -405,17 +464,17 @@
                   <div class="mini-btn-group">
                     <button
                       type="button"
-                      class="btn btn-ghost btn-sm"
+                      class="btn btn-ghost btn-sm icon-start ico-plus"
                       id="bulk-send-to-dock-btn"
                     >
-                      ➕ Pasar a Cola General
+                      Pasar a Cola General
                     </button>
                     <button
                       type="button"
-                      class="btn btn-danger btn-sm"
+                      class="btn btn-danger btn-sm icon-start ico-trash"
                       id="bulk-clear-btn"
                     >
-                      🗑 Limpiar
+                      Limpiar
                     </button>
                   </div>
                 </div>
@@ -483,24 +542,24 @@
                   <div class="bulk-cta-row">
                     <button
                       type="button"
-                      class="btn btn-wa"
+                      class="btn btn-wa icon-start ico-phone"
                       id="bulk-build-wastickers-btn"
                     >
-                      📲 Convertir directo a Sticker Maker (.wastickers)
+                      Convertir directo a Sticker Maker (.wastickers)
                     </button>
                     <button
                       type="button"
-                      class="btn btn-ghost"
+                      class="btn btn-ghost icon-start ico-film"
                       id="bulk-build-gif-btn"
                     >
-                      🎞️ Descargar Lote en GIF (.ZIP)
+                      Descargar Lote en GIF (.ZIP)
                     </button>
                     <button
                       type="button"
-                      class="btn btn-danger is-hidden"
+                      class="btn btn-danger icon-start ico-stop is-hidden"
                       id="bulk-cancel-btn"
                     >
-                      ⏹ Cancelar
+                      Cancelar
                     </button>
                   </div>
 
@@ -530,10 +589,10 @@
           >
             <div class="panel-inner">
               <div class="saved-section-header">
-                <span>⭐ Tus Favoritos</span>
+                <span class="icon-start ico-star">Tus Favoritos</span>
                 <button
                   type="button"
-                  class="btn btn-ghost btn-sm"
+                  class="btn btn-ghost btn-sm icon-start ico-trash"
                   id="clear-favs-btn"
                 >
                   Limpiar favoritos
@@ -545,10 +604,10 @@
               ></div>
 
               <div class="saved-section-header saved-section-spaced">
-                <span>🕒 Abiertos recientemente</span>
+                <span class="icon-start ico-clock">Abiertos recientemente</span>
                 <button
                   type="button"
-                  class="btn btn-ghost btn-sm"
+                  class="btn btn-ghost btn-sm icon-start ico-trash"
                   id="clear-recent-btn"
                 >
                   Borrar historial
@@ -567,15 +626,15 @@
       <aside class="card studio-sticky" aria-labelledby="studio-heading">
         <div class="card-header">
           <h2 id="studio-heading" class="card-title">
-            <span class="dot dot-green"></span>
+            <span class="dot dot-green" aria-hidden="true"></span>
             <span>Sticker Studio · 512×512</span>
           </h2>
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
+            class="btn btn-ghost btn-sm icon-start ico-reset"
             id="reset-studio-btn"
           >
-            ↺ Reset Ajustes
+            Reset Ajustes
           </button>
         </div>
 
@@ -590,19 +649,35 @@
             >
               <button
                 type="button"
-                class="bg-pill active"
+                class="bg-pill active icon-start ico-grid"
                 data-bg="checker"
+                aria-pressed="true"
               >
-                🏁 Transp.
+                Transp.
               </button>
-              <button type="button" class="bg-pill" data-bg="wa-dark">
-                💬 WA Oscuro
+              <button
+                type="button"
+                class="bg-pill icon-start ico-chat"
+                data-bg="wa-dark"
+                aria-pressed="false"
+              >
+                WA Oscuro
               </button>
-              <button type="button" class="bg-pill" data-bg="wa-light">
-                ☀️ WA Claro
+              <button
+                type="button"
+                class="bg-pill icon-start ico-sun"
+                data-bg="wa-light"
+                aria-pressed="false"
+              >
+                WA Claro
               </button>
-              <button type="button" class="bg-pill" data-bg="discord">
-                🎮 Discord
+              <button
+                type="button"
+                class="bg-pill"
+                data-bg="discord"
+                aria-pressed="false"
+              >
+                Discord
               </button>
             </div>
           </div>
@@ -631,7 +706,9 @@
 
           <!-- Animated toggle notice -->
           <div class="anim-banner is-hidden" id="anim-banner">
-            <span id="anim-banner-text">🎞️ Emote animado detectado</span>
+            <span id="anim-banner-text" class="icon-start ico-film"
+              >Emote animado detectado</span
+            >
             <button
               type="button"
               class="btn btn-ghost btn-sm"
@@ -655,21 +732,29 @@
             />
             <button
               type="button"
-              class="btn btn-ghost"
+              class="btn btn-ghost icon-start ico-plus"
               id="studio-pack-btn"
               aria-label="Añadir sticker actual al Pack ZIP"
             >
-              ➕ Al Pack
+              Al Pack
             </button>
           </div>
 
           <!-- Primary Export Actions -->
           <div class="export-actions">
-            <button type="button" class="btn btn-green" id="copy-btn">
-              📋 Copiar Imagen
+            <button
+              type="button"
+              class="btn btn-green icon-start ico-clipboard"
+              id="copy-btn"
+            >
+              Copiar Imagen
             </button>
-            <button type="button" class="btn" id="download-btn">
-              ⬇ Descargar
+            <button
+              type="button"
+              class="btn icon-start ico-download"
+              id="download-btn"
+            >
+              Descargar
             </button>
             <button
               type="button"
@@ -696,7 +781,9 @@
             <!-- 1. Fit & Transform -->
             <div class="control-box">
               <div class="control-header">
-                <span>📐 Encuadre y Transformación</span>
+                <span class="icon-start ico-sliders"
+                  >Encuadre y Transformación</span
+                >
                 <div class="mini-btn-group">
                   <button
                     type="button"
@@ -730,13 +817,24 @@
                   type="button"
                   class="seg-btn active"
                   data-fit="contain"
+                  aria-pressed="true"
                 >
                   Proporcional
                 </button>
-                <button type="button" class="seg-btn" data-fit="stretch">
+                <button
+                  type="button"
+                  class="seg-btn"
+                  data-fit="stretch"
+                  aria-pressed="false"
+                >
                   Expandir (Wide)
                 </button>
-                <button type="button" class="seg-btn" data-fit="cover">
+                <button
+                  type="button"
+                  class="seg-btn"
+                  data-fit="cover"
+                  aria-pressed="false"
+                >
                   Rellenar
                 </button>
               </div>
@@ -761,7 +859,9 @@
             <!-- 2. Border / Outline & Shadow -->
             <div class="control-box">
               <div class="control-header">
-                <span>✨ Contorno y Sombra (Opcional)</span>
+                <span class="icon-start ico-sparkles"
+                  >Contorno y Sombra (Opcional)</span
+                >
                 <span class="mono control-note">0px = Sin borde</span>
               </div>
 
@@ -814,7 +914,7 @@
             <!-- 3. Meme Text Overlay -->
             <div class="control-box">
               <div class="control-header">
-                <span>💬 Texto Meme / Leyenda</span>
+                <span class="icon-start ico-type">Texto Meme / Leyenda</span>
                 <div>
                   <label for="text-color" class="visually-hidden"
                     >Color del texto</label
@@ -867,7 +967,9 @@
             <!-- 4. Output Format & Quality -->
             <div class="control-box">
               <div class="control-header">
-                <label for="export-format">📦 Formato de Descarga</label>
+                <label for="export-format" class="icon-start ico-package"
+                  >Formato de Descarga</label
+                >
               </div>
               <select id="export-format" class="select-input select-full">
                 <option value="image/webp">
@@ -910,8 +1012,8 @@
       <div class="pack-dock-inner">
         <div class="pack-top-row">
           <div class="pack-info-group">
-            <strong class="pack-title-strong">
-              📦 Pack en cola:
+            <strong class="pack-title-strong icon-start ico-package">
+              <span>Pack en cola:</span>
               <span class="mono pack-count-num" id="pack-count">0</span>
             </strong>
             <span class="pack-hint-copy" id="pack-hint-label">
@@ -943,34 +1045,38 @@
             </select>
             <button
               type="button"
-              class="btn btn-danger btn-sm"
+              class="btn btn-danger btn-sm icon-start ico-trash"
               id="clear-pack-btn"
             >
-              🗑 Vaciar
+              Vaciar
             </button>
             <button
               type="button"
-              class="btn btn-ghost btn-sm"
+              class="btn btn-ghost btn-sm icon-start ico-film"
               id="gif-zip-btn"
             >
-              🎞️ Pack GIF (.ZIP)
-            </button>
-            <button type="button" class="btn btn-ghost btn-sm" id="zip-btn">
-              📦 Descargar .ZIP
+              Pack GIF (.ZIP)
             </button>
             <button
               type="button"
-              class="btn btn-ghost btn-sm is-hidden"
+              class="btn btn-ghost btn-sm icon-start ico-package"
+              id="zip-btn"
+            >
+              Descargar .ZIP
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm icon-start ico-chat is-hidden"
               id="share-pack-btn"
             >
-              💬 Enviar Lote al Chat
+              Enviar Lote al Chat
             </button>
             <button
               type="button"
-              class="btn btn-wa btn-sm"
+              class="btn btn-wa btn-sm icon-start ico-phone"
               id="open-wastickers-btn"
             >
-              📲 Crear Pack WhatsApp (.wastickers)
+              Crear Pack WhatsApp (.wastickers)
             </button>
           </div>
         </div>
@@ -990,16 +1096,16 @@
     >
       <div class="dialog-inner">
         <div class="dialog-head">
-          <h1 id="wastickers-dialog-title">
-            📲 Instalar Paquete Completo en WhatsApp
+          <h1 id="wastickers-dialog-title" class="icon-start ico-phone">
+            Instalar Paquete Completo en WhatsApp
           </h1>
           <form method="dialog">
             <button
               type="submit"
-              class="btn btn-ghost btn-sm"
+              class="btn btn-ghost btn-sm icon-start ico-close"
               aria-label="Cerrar creador de paquete"
             >
-              ✕ Cerrar
+              Cerrar
             </button>
           </form>
         </div>
@@ -1079,22 +1185,24 @@
           <div class="pack-modal-actions">
             <button
               type="button"
-              class="btn btn-wa is-hidden"
+              class="btn btn-wa icon-start ico-phone is-hidden"
               id="share-wastickers-btn"
             >
-              📲 Abrir directo en Sticker Maker
+              Abrir directo en Sticker Maker
             </button>
             <button
               type="button"
-              class="btn btn-green"
+              class="btn btn-green icon-start ico-download"
               id="download-wastickers-btn"
             >
-              ⬇ Descargar Pack (.wastickers)
+              Descargar Pack (.wastickers)
             </button>
           </div>
 
           <div class="guide-item">
-            <strong>💡 ¿Cómo se instala en 2 toques?</strong>
+            <strong class="icon-start ico-sparkles"
+              >¿Cómo se instala en 2 toques?</strong
+            >
             WhatsApp exige por seguridad una app puente para registrar paquetes
             completos. Abre el archivo <code>.wastickers</code> en tu teléfono
             con <b>Sticker Maker</b> (Android / iOS) → pulsa
@@ -1110,40 +1218,46 @@
     <dialog id="help-dialog" closedby="any" aria-labelledby="help-dialog-title">
       <div class="dialog-inner">
         <div class="dialog-head">
-          <h1 id="help-dialog-title">
-            ✨ Cómo pasar tus stickers a WhatsApp sin borde blanco
+          <h1 id="help-dialog-title" class="icon-start ico-sparkles">
+            Cómo pasar tus stickers a WhatsApp sin borde blanco
           </h1>
           <form method="dialog">
             <button
               type="submit"
-              class="btn btn-ghost btn-sm"
+              class="btn btn-ghost btn-sm icon-start ico-close"
               autofocus
               aria-label="Cerrar guía"
             >
-              ✕ Cerrar
+              Cerrar
             </button>
           </form>
         </div>
 
         <div class="guide-steps">
           <div class="guide-item">
-            <strong>📲 Instalar un Pack Completo con Nombre e Ícono</strong>
+            <strong class="icon-start ico-phone"
+              >Instalar un Pack Completo con Nombre e Ícono</strong
+            >
             Agrega 3 o más emotes con el botón <b>+</b> y pulsa
-            <b>📲 Crear Pack WhatsApp (.wastickers)</b>. Se generará un paquete
+            <b>Crear Pack WhatsApp (.wastickers)</b>. Se generará un paquete
             oficial con nombre, autor, portada <code>96×96</code> y stickers
             <code>512×512</code> listos para abrir en <b>Sticker Maker</b> y
             añadir el pack entero a WhatsApp con un toque.
           </div>
           <div class="guide-item">
-            <strong>💬 Enviar Lote o Sticker Individual sin Apps Extra</strong>
-            En el celular, usa <b>💬 Enviar Lote al Chat</b> (o
+            <strong class="icon-start ico-chat"
+              >Enviar Lote o Sticker Individual sin Apps Extra</strong
+            >
+            En el celular, usa <b>Enviar Lote al Chat</b> (o
             <b>Compartir Sticker a WhatsApp</b>) para mandar todos los
             <code>WEBP 512×512</code> transparentes juntos a tu propio chat y
             guardarlos en Favoritos.
           </div>
           <div class="guide-item">
-            <strong>💻 Desde PC (WhatsApp Web / Discord / Telegram)</strong>
-            Haz clic en <b>📋 Copiar Imagen</b> y pega con <kbd>Ctrl</kbd>+<kbd
+            <strong class="icon-start ico-clipboard"
+              >Desde PC (WhatsApp Web / Discord / Telegram)</strong
+            >
+            Haz clic en <b>Copiar Imagen</b> y pega con <kbd>Ctrl</kbd>+<kbd
               >V</kbd
             >, o envíate el archivo <code>.wastickers</code> a tu propio chat de
             WhatsApp Web para instalar el pack completo al abrirlo en tu

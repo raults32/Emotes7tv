@@ -10,7 +10,10 @@ import {
   supportsAnimatedWebpEncoding,
   encodeAnimatedBufferToWebp512,
 } from "../core/animatedWebp.js";
-import { convertBufferToGifOutput } from "../core/zipBuilder.js";
+import {
+  convertBufferToGifOutput,
+  sanitizeSafeFileStem,
+} from "../core/zipBuilder.js";
 import { writePngBlobToClipboard } from "../services/clipboard.js";
 import { setStatus, showToast } from "./notifications.js";
 import { openHelpDialog } from "./modals.js";
@@ -64,14 +67,16 @@ export function initStudioView() {
     const txt = document.getElementById("anim-banner-text");
     const btn = document.getElementById("toggle-anim-edit-btn");
     if (!txt || !btn) return;
+    txt.classList.toggle("ico-image", state.editAnimatedAsStatic);
+    txt.classList.toggle("ico-film", !state.editAnimatedAsStatic);
     if (state.editAnimatedAsStatic) {
-      txt.textContent = "🖼️ Modo fotograma estático 512×512";
+      txt.textContent = "Modo fotograma estático 512×512";
       btn.textContent = "Volver a Animado";
     } else {
       const canAnim512 = supportsAnimatedWebpEncoding();
       txt.textContent = canAnim512
-        ? "🎞️ Animado activo (se exporta a WEBP 512×512 para WA)"
-        : `🎞️ Animación activa (${state.animMime === "image/gif" ? "GIF" : "WEBP"})`;
+        ? "Animado activo (WEBP 512×512 listo para WA)"
+        : `Animación activa (${state.animMime === "image/gif" ? "GIF" : "WEBP"})`;
       btn.textContent = "Congelar fotograma";
     }
   }
@@ -109,7 +114,7 @@ export function initStudioView() {
           : `${state.sourceImage.naturalWidth}×${state.sourceImage.naturalHeight} · Anim`;
       }
       if (sizeBadge) {
-        sizeBadge.textContent = `${kb} KB ${over ? "⚡ Auto <500KB al exportar" : "✓ OK WA"}`;
+        sizeBadge.textContent = `${kb} KB ${over ? "· Auto <500KB al exportar" : "· OK WA"}`;
         sizeBadge.className = "stage-badge ok";
       }
       return;
@@ -128,7 +133,7 @@ export function initStudioView() {
       const fmtShort = cfg.format === "image/webp" ? "WEBP" : "PNG";
       if (dimsBadge) dimsBadge.textContent = `512×512 · ${fmtShort}`;
       if (sizeBadge) {
-        sizeBadge.textContent = `${kb} KB ${over && cfg.format === "image/webp" ? "⚡ Auto <100KB en WA" : "✓ OK WA"}`;
+        sizeBadge.textContent = `${kb} KB ${over && cfg.format === "image/webp" ? "· Auto <100KB en WA" : "· OK WA"}`;
         sizeBadge.className = "stage-badge ok";
       }
     } catch {
@@ -138,7 +143,7 @@ export function initStudioView() {
 
   async function loadBufferIntoStudio(buf, name) {
     state.rawBuffer = buf;
-    state.fname = name || "sticker";
+    state.fname = sanitizeSafeFileStem(name, "sticker");
     const fnameIn = document.getElementById("fname-in");
     if (fnameIn) fnameIn.value = state.fname;
 
@@ -173,20 +178,22 @@ export function initStudioView() {
     pill.addEventListener("click", () => {
       const stage = document.getElementById("stage-outer");
       if (stage) stage.dataset.bg = pill.dataset.bg;
-      document
-        .querySelectorAll(".bg-pill")
-        .forEach((p) => p.classList.remove("active"));
-      pill.classList.add("active");
+      document.querySelectorAll(".bg-pill").forEach((p) => {
+        const active = p === pill;
+        p.classList.toggle("active", active);
+        p.setAttribute("aria-pressed", String(active));
+      });
     });
   });
 
   document.querySelectorAll(".seg-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       state.fitMode = btn.dataset.fit || "contain";
-      document
-        .querySelectorAll(".seg-btn")
-        .forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
+      document.querySelectorAll(".seg-btn").forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-pressed", String(active));
+      });
       renderStudio();
     });
   });
@@ -212,7 +219,9 @@ export function initStudioView() {
     state.flipV = 1;
     state.rotation = 0;
     document.querySelectorAll(".seg-btn").forEach((b) => {
-      b.classList.toggle("active", b.dataset.fit === "contain");
+      const active = b.dataset.fit === "contain";
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", String(active));
     });
     document.getElementById("scale-slider").value = 96;
     document.getElementById("outline-slider").value = 0;
@@ -243,7 +252,7 @@ export function initStudioView() {
     ?.addEventListener("change", renderStudio);
 
   document.getElementById("fname-in")?.addEventListener("input", (e) => {
-    state.fname = e.target.value.trim() || "sticker";
+    state.fname = sanitizeSafeFileStem(e.target.value, "sticker");
   });
 
   document.getElementById("studio-pack-btn")?.addEventListener("click", () => {
@@ -263,13 +272,13 @@ export function initStudioView() {
       return;
     }
     store.togglePackItem(item);
-    showToast(`➕ "${item.name}" añadido al Pack (${state.packQueue.length})`);
+    showToast(`"${item.name}" añadido al Pack (${state.packQueue.length})`);
   });
 
   async function buildFinalStickerExport(forceWhatsAppReady = false) {
     const cfg = getStudioSettings();
     if (!forceWhatsAppReady && cfg.format === "image/gif") {
-      setStatus("⟳ Generando archivo GIF transparente…", "run");
+      setStatus("Generando archivo GIF transparente…", "run");
       const gifData = await convertBufferToGifOutput(state.rawBuffer, cfg);
       const gifBlob =
         gifData instanceof Blob
@@ -283,7 +292,7 @@ export function initStudioView() {
         (forceWhatsAppReady || cfg.format === "image/webp") &&
         supportsAnimatedWebpEncoding()
       ) {
-        setStatus("⟳ Codificando sticker animado 512×512 (<500 KB)…", "run");
+        setStatus("Codificando sticker animado 512×512 (<500 KB)…", "run");
         const animWebp = await encodeAnimatedBufferToWebp512(
           state.rawBuffer,
           state.animMime,
@@ -318,13 +327,14 @@ export function initStudioView() {
     }
     try {
       const { blob, ext } = await buildFinalStickerExport(false);
+      const safeStem = sanitizeSafeFileStem(state.fname, "sticker");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `sticker_${state.fname}.${ext}`;
+      a.download = `sticker_${safeStem}.${ext}`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 3000);
-      showToast(`⬇ Descargado: sticker_${state.fname}.${ext}`);
+      showToast(`Descargado: sticker_${safeStem}.${ext}`);
     } catch (err) {
       showToast(`Error exportando: ${err.message}`, "err");
     }
@@ -346,7 +356,7 @@ export function initStudioView() {
       }
       const pngBlob = await canvasToBlob(cv, "image/png");
       await writePngBlobToClipboard(pngBlob);
-      showToast("📋 ¡Copiado! Pégalo con Ctrl+V en WhatsApp Web o Discord");
+      showToast("¡Copiado! Pégalo con Ctrl+V en WhatsApp Web o Discord");
     } catch {
       showToast("Tu navegador bloqueó copiar imagen: usa Descargar.", "err");
     }
@@ -362,7 +372,8 @@ export function initStudioView() {
 
       try {
         const { blob, ext, mime } = await buildFinalStickerExport(true);
-        const file = new File([blob], `sticker_${state.fname}.${ext}`, {
+        const safeStem = sanitizeSafeFileStem(state.fname, "sticker");
+        const file = new File([blob], `sticker_${safeStem}.${ext}`, {
           type: mime,
         });
         if (
@@ -370,13 +381,13 @@ export function initStudioView() {
           navigator.canShare &&
           navigator.canShare({ files: [file] })
         ) {
-          await navigator.share({ files: [file], title: state.fname });
-          showToast("✓ Compartido — elige WhatsApp en el menú");
+          await navigator.share({ files: [file], title: safeStem });
+          showToast("Compartido — elige WhatsApp en el menú");
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `sticker_${state.fname}.${ext}`;
+          a.download = `sticker_${safeStem}.${ext}`;
           a.click();
           setTimeout(() => URL.revokeObjectURL(url), 3000);
           openHelpDialog();

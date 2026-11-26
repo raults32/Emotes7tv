@@ -3,17 +3,28 @@ import {
   buildWastickersArchives,
   buildPackZipBlob,
   bundleArchivesIntoMasterZip,
+  sanitizeSafeFileStem,
 } from "../core/zipBuilder.js";
 import { getStudioSettings } from "./studioView.js";
 import { setStatus, showToast } from "./notifications.js";
 
-const IMAGE_EXT_RE = /\.(png|webp|gif|jpe?g|avif|bmp|svg)$/i;
+// Safe raster formats only (excludes untrusted XML/SVG payloads)
+const RASTER_EXT_RE = /\.(png|webp|gif|jpe?g|avif|bmp)$/i;
+const RASTER_MIMES = new Set([
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/jpeg",
+  "image/avif",
+  "image/bmp",
+]);
 const THUMBS_PAGE_SIZE = 36;
 
 function isSupportedImageFile(file) {
   if (!file) return false;
-  if (file.type && file.type.startsWith("image/")) return true;
-  return IMAGE_EXT_RE.test(file.name || "");
+  if (file.type && RASTER_MIMES.has(file.type.toLowerCase())) return true;
+  if (file.type === "image/svg+xml") return false;
+  return RASTER_EXT_RE.test(file.name || "");
 }
 
 /**
@@ -78,7 +89,6 @@ function triggerDownload(blob, fileName) {
 }
 
 export function initBulkFolderView({ onLoadBufferInStudio }) {
-  // Lazy file entries: [{ id, name, file, thumbUrl: string | null }]
   let bulkItems = [];
   let visibleThumbLimit = THUMBS_PAGE_SIZE;
   let activeAbortController = null;
@@ -155,39 +165,30 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
 
       const card = document.createElement("div");
       card.className = "bulk-thumb-card";
-      card.tabIndex = 0;
-      card.setAttribute("role", "button");
-      card.setAttribute(
+
+      const openBtn = document.createElement("button");
+      openBtn.type = "button";
+      openBtn.className = "emote-open-btn";
+      openBtn.setAttribute(
         "aria-label",
         `Previsualizar ${item.name} en el Sticker Studio`
       );
 
-      const rm = document.createElement("button");
-      rm.type = "button";
-      rm.className = "tile-btn tile-pack";
-      rm.textContent = "×";
-      rm.setAttribute("aria-label", `Quitar ${item.name} del lote`);
-      rm.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (item.thumbUrl) URL.revokeObjectURL(item.thumbUrl);
-        bulkItems = bulkItems.toSpliced(idx, 1);
-        renderBulkList();
-      });
-
       const img = document.createElement("img");
       img.src = item.thumbUrl;
-      img.alt = item.name;
+      img.alt = "";
       img.width = 52;
       img.height = 52;
       img.loading = "lazy";
+      img.decoding = "async";
 
       const nameEl = document.createElement("span");
       nameEl.className = "emote-name";
       nameEl.textContent = item.name;
 
-      card.append(rm, img, nameEl);
+      openBtn.append(img, nameEl);
 
-      const openPreview = async () => {
+      openBtn.addEventListener("click", async () => {
         const buf = await item.file.arrayBuffer();
         store.setActiveEmote(null, {
           id: item.id,
@@ -196,17 +197,21 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
           thumbUrl: item.thumbUrl || URL.createObjectURL(item.file),
         });
         await onLoadBufferInStudio(buf, item.name);
-        showToast(`🖼️ Previsualizando "${item.name}" en el Studio`);
-      };
-
-      card.addEventListener("click", openPreview);
-      card.addEventListener("keydown", (e) => {
-        if ((e.key === "Enter" || e.key === " ") && e.target === card) {
-          e.preventDefault();
-          openPreview();
-        }
+        showToast(`Previsualizando "${item.name}" en el Studio`);
       });
 
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "icon tile-btn tile-remove";
+      rm.setAttribute("aria-label", `Quitar ${item.name} del lote`);
+      rm.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (item.thumbUrl) URL.revokeObjectURL(item.thumbUrl);
+        bulkItems = bulkItems.toSpliced(idx, 1);
+        renderBulkList();
+      });
+
+      card.append(openBtn, rm);
       return card;
     });
 
@@ -224,11 +229,10 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
   async function ingestFiles(files, suggestedFolderName = "") {
     const valid = files.filter(isSupportedImageFile);
     if (!valid.length) {
-      showToast("No se detectaron imágenes compatibles.", "err");
+      showToast("No se detectaron imágenes raster compatibles.", "err");
       return;
     }
 
-    // Detect folder name from webkitRelativePath if available
     const relFolder =
       suggestedFolderName ||
       valid[0].webkitRelativePath?.split("/")[0]?.trim() ||
@@ -243,7 +247,10 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
 
     const newEntries = valid.map((f, i) => ({
       id: `bulk_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 7)}`,
-      name: f.name.replace(/\.[^.]+$/, "") || `sticker_${i + 1}`,
+      name: sanitizeSafeFileStem(
+        f.name.replace(/\.[^.]+$/, ""),
+        `sticker_${i + 1}`
+      ),
       file: f,
       thumbUrl: null,
     }));
@@ -252,7 +259,6 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
     bulkItems = [...bulkItems, ...newEntries];
     renderBulkList();
 
-    // Open the very first image in Studio so the right-hand preview is live immediately
     if (wasEmpty && newEntries[0]) {
       try {
         const firstBuf = await newEntries[0].file.arrayBuffer();
@@ -263,11 +269,10 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
     }
 
     showToast(
-      `📂 ${newEntries.length} ${newEntries.length === 1 ? "imagen añadida" : "imágenes añadidas"} (${bulkItems.length} en total)`
+      `${newEntries.length} ${newEntries.length === 1 ? "imagen añadida" : "imágenes añadidas"} (${bulkItems.length} en total)`
     );
   }
 
-  // Trigger file / folder dialogs
   pickFolderBtn?.addEventListener("click", () => folderIn?.click());
   pickFilesBtn?.addEventListener("click", () => fileIn?.click());
 
@@ -293,7 +298,7 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
   dz?.addEventListener("drop", async (e) => {
     e.preventDefault();
     dz.classList.remove("over");
-    setStatus("⟳ Leyendo archivos o carpeta soltada…", "run");
+    setStatus("Leyendo archivos o carpeta soltada…", "run");
     const { files, folderName } = await extractFilesFromDataTransfer(
       e.dataTransfer
     );
@@ -322,7 +327,7 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
       thumbUrl: it.thumbUrl || URL.createObjectURL(it.file),
     }));
     const added = store.addManyToPack(dockItems);
-    showToast(`➕ ${added} imágenes enviadas a la cola inferior`);
+    showToast(`${added} imágenes enviadas a la cola inferior`);
   });
 
   cancelBtn?.addEventListener("click", () => {
@@ -366,12 +371,12 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
       const masterBar = document.createElement("div");
       masterBar.className = "bulk-master-bar";
       const info = document.createElement("strong");
-      info.textContent = `✅ ${archives.length} paquetes .wastickers listos para Sticker Maker`;
+      info.textContent = `✓ ${archives.length} paquetes .wastickers listos para Sticker Maker`;
 
       const zipAllBtn = document.createElement("button");
       zipAllBtn.type = "button";
-      zipAllBtn.className = "btn btn-green btn-sm";
-      zipAllBtn.textContent = `📦 Bajar los ${archives.length} paquetes en 1 .ZIP`;
+      zipAllBtn.className = "btn btn-green btn-sm icon-start ico-package";
+      zipAllBtn.textContent = `Bajar los ${archives.length} paquetes en 1 .ZIP`;
       zipAllBtn.addEventListener("click", async () => {
         zipAllBtn.disabled = true;
         try {
@@ -380,7 +385,7 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
             masterBlob,
             `packs_wastickers_${archives.length}_volumenes.zip`
           );
-          showToast("📦 ZIP con todos los .wastickers descargado");
+          showToast("ZIP con todos los .wastickers descargado");
         } finally {
           zipAllBtn.disabled = false;
         }
@@ -409,8 +414,8 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
       if (canShareFiles) {
         const shareBtn = document.createElement("button");
         shareBtn.type = "button";
-        shareBtn.className = "btn btn-wa btn-sm";
-        shareBtn.textContent = "📲 Sticker Maker";
+        shareBtn.className = "btn btn-wa btn-sm icon-start ico-phone";
+        shareBtn.textContent = "Sticker Maker";
         shareBtn.addEventListener("click", async () => {
           const file = new File([arch.blob], arch.fileName, {
             type: "application/octet-stream",
@@ -432,8 +437,8 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
 
       const dlBtn = document.createElement("button");
       dlBtn.type = "button";
-      dlBtn.className = "btn btn-ghost btn-sm";
-      dlBtn.textContent = "⬇ .wastickers";
+      dlBtn.className = "btn btn-ghost btn-sm icon-start ico-download";
+      dlBtn.textContent = ".wastickers";
       dlBtn.addEventListener("click", () =>
         triggerDownload(arch.blob, arch.fileName)
       );
@@ -446,7 +451,6 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
     resultsBox.replaceChildren(...nodes);
   }
 
-  // Convert unlimited folder/PNGs -> `.wastickers`
   buildWastickersBtn?.addEventListener("click", async () => {
     if (!bulkItems.length) {
       showToast("Sube una carpeta o imágenes PNG primero.", "err");
@@ -473,18 +477,17 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
         onProgress: ({ phase, current, total, name, pct }) => {
           progFill?.style.setProperty("--pack-pct", `${pct}%`);
           if (statusLine) {
-            statusLine.textContent = `⟳ ${phase} ${current}/${total}: ${name}…`;
+            statusLine.textContent = `${phase} ${current}/${total}: ${name}…`;
           }
-          setStatus(`⟳ Convirtiendo lote ${current}/${total}…`, "run");
+          setStatus(`Convirtiendo lote ${current}/${total}…`, "run");
         },
       });
 
       renderGeneratedWastickersCards(archives);
       if (statusLine) {
-        statusLine.textContent = `✓ ¡Listo! ${archives.length === 1 ? "Paquete .wastickers generado" : `${archives.length} paquetes .wastickers generados`}.`;
+        statusLine.textContent = `¡Listo! ${archives.length === 1 ? "Paquete .wastickers generado" : `${archives.length} paquetes .wastickers generados`}.`;
       }
 
-      // If single pack, trigger direct share on mobile or direct download on desktop right away!
       if (archives.length === 1) {
         const single = archives[0];
         const file = new File([single.blob], single.fileName, {
@@ -493,7 +496,7 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
         if (canShareFiles && navigator.canShare({ files: [file] })) {
           try {
             await navigator.share({ files: [file], title: single.packTitle });
-            showToast("📲 Elige Sticker Maker → Agregar a WhatsApp");
+            showToast("Elige Sticker Maker → Agregar a WhatsApp");
           } catch (err) {
             if (err.name !== "AbortError") {
               triggerDownload(single.blob, single.fileName);
@@ -501,19 +504,19 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
           }
         } else {
           triggerDownload(single.blob, single.fileName);
-          showToast(`📲 Descargado: ${single.fileName}`);
+          showToast(`Descargado: ${single.fileName}`);
         }
       } else {
         showToast(
-          `📲 ${archives.length} paquetes .wastickers listos abajo para abrir o descargar`
+          `${archives.length} paquetes .wastickers listos abajo para abrir o descargar`
         );
       }
     } catch (err) {
       if (err.name === "AbortError") {
-        if (statusLine) statusLine.textContent = "⏹ Conversión cancelada.";
+        if (statusLine) statusLine.textContent = "Conversión cancelada.";
         showToast("Conversión por lotes cancelada.", "err");
       } else {
-        if (statusLine) statusLine.textContent = `✗ Error: ${err.message}`;
+        if (statusLine) statusLine.textContent = `Error: ${err.message}`;
         showToast(`Error convirtiendo lote: ${err.message}`, "err");
       }
     } finally {
@@ -522,7 +525,6 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
     }
   });
 
-  // Convert unlimited folder/PNGs -> GIF Pack (.ZIP)
   buildGifBtn?.addEventListener("click", async () => {
     if (!bulkItems.length) {
       showToast("Sube una carpeta o imágenes primero.", "err");
@@ -541,27 +543,25 @@ export function initBulkFolderView({ onLoadBufferInStudio }) {
         onProgress: ({ current, total, name, pct }) => {
           progFill?.style.setProperty("--pack-pct", `${pct}%`);
           if (statusLine) {
-            statusLine.textContent = `⟳ Codificando GIF ${current}/${total}: ${name}…`;
+            statusLine.textContent = `Codificando GIF ${current}/${total}: ${name}…`;
           }
-          setStatus(`⟳ Codificando GIF ${current}/${total}…`, "run");
+          setStatus(`Codificando GIF ${current}/${total}…`, "run");
         },
       });
 
       if (zipBlob && done > 0) {
-        const slug = (titleIn?.value.trim() || "pack_gifs")
-          .replace(/[\\/:*?"<>|]+/g, "")
-          .replace(/\s+/g, "_");
+        const slug = sanitizeSafeFileStem(titleIn?.value, "pack_gifs");
         triggerDownload(zipBlob, `${slug}_${done}_gifs.zip`);
         if (statusLine) {
-          statusLine.textContent = `✓ Pack de ${done} archivos .GIF descargado.`;
+          statusLine.textContent = `Pack de ${done} archivos .GIF descargado.`;
         }
         showToast(
-          `🎞️ Pack GIF descargado (${done} GIFs${errors ? `, ${errors} omitidos` : ""})`
+          `Pack GIF descargado (${done} GIFs${errors ? `, ${errors} omitidos` : ""})`
         );
       }
     } catch (err) {
       if (err.name === "AbortError") {
-        if (statusLine) statusLine.textContent = "⏹ Conversión GIF cancelada.";
+        if (statusLine) statusLine.textContent = "Conversión GIF cancelada.";
         showToast("Conversión GIF cancelada.", "err");
       } else {
         showToast(`Error creando Pack GIF: ${err.message}`, "err");

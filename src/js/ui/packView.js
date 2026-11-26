@@ -33,7 +33,6 @@ export function initPackView() {
   const prog = document.getElementById("pack-progress");
   const fill = document.getElementById("pack-progress-fill");
 
-  // Modal elements for `.wastickers` Pack Builder
   const waDialog = document.getElementById("wastickers-dialog");
   const summaryBanner = document.getElementById("wastickers-summary-banner");
   const titleIn = document.getElementById("pack-title-in");
@@ -66,7 +65,7 @@ export function initPackView() {
 
     if (total < 3) {
       summaryBanner.className = "pack-modal-banner warn";
-      summaryBanner.textContent = `⚠ WhatsApp exige mínimo 3 stickers para instalar un paquete (actualmente tienes ${total}/3). Añade ${3 - total} más o usa "Enviar todos al Chat".`;
+      summaryBanner.textContent = `WhatsApp exige mínimo 3 stickers para instalar un paquete (actualmente tienes ${total}/3). Añade ${3 - total} más o usa "Enviar Lote al Chat".`;
     } else if (total > 30) {
       const vols = Math.ceil(total / 30);
       summaryBanner.className = "pack-modal-banner ok";
@@ -80,7 +79,6 @@ export function initPackView() {
     if (downloadWastickersBtn) downloadWastickersBtn.disabled = underMin;
     if (shareWastickersBtn) shareWastickersBtn.disabled = underMin;
 
-    // Render tray icon chooser
     if (trayStrip) {
       if (
         !selectedTrayId ||
@@ -99,7 +97,7 @@ export function initPackView() {
 
         const img = document.createElement("img");
         img.src = item.thumbUrl;
-        img.alt = item.name;
+        img.alt = "";
         img.width = 40;
         img.height = 40;
         btn.appendChild(img);
@@ -131,7 +129,7 @@ export function initPackView() {
 
       const rm = document.createElement("button");
       rm.type = "button";
-      rm.textContent = "×";
+      rm.className = "icon";
       rm.setAttribute("aria-label", `Quitar ${item.name} del pack`);
       rm.addEventListener("click", () => store.removePackAt(idx));
 
@@ -148,9 +146,7 @@ export function initPackView() {
   store.addEventListener("pack:change", renderPackDock);
   clearBtn?.addEventListener("click", () => store.clearPack());
 
-  // Open `.wastickers` Pack Configurator Modal
   openWaPackBtn?.addEventListener("click", () => {
-    // Auto-suggest loaded channel/set name if user hasn't customized pack title
     const setBadgeText = document
       .getElementById("set-title-label")
       ?.textContent?.split("·")[0]
@@ -202,7 +198,7 @@ export function initPackView() {
         onProgress: ({ phase, current, total, name, pct }) => {
           modalFill?.style.setProperty("--pack-pct", `${pct}%`);
           if (modalStatus) {
-            modalStatus.textContent = `⟳ ${phase} (${current}/${total}): ${name}…`;
+            modalStatus.textContent = `${phase} (${current}/${total}): ${name}…`;
           }
         },
       });
@@ -223,12 +219,11 @@ export function initPackView() {
             modalStatus.textContent =
               "✓ Elige Sticker Maker en el menú para agregarlo directo a WhatsApp.";
           }
-          showToast("📲 Elige Sticker Maker → Añadir a WhatsApp");
+          showToast("Elige Sticker Maker → Añadir a WhatsApp");
           return;
         }
       }
 
-      // Download each `.wastickers` volume
       archives.forEach((arch, idx) => {
         setTimeout(() => {
           triggerBlobDownload(arch.blob, arch.fileName);
@@ -239,11 +234,11 @@ export function initPackView() {
         modalStatus.textContent = `✓ ${archives.length > 1 ? `${archives.length} paquetes .wastickers descargados` : `Descargado: ${archives[0].fileName}`} — ábrelo con Sticker Maker para instalarlo en WhatsApp.`;
       }
       showToast(
-        `📲 Pack .wastickers listo (${archives.reduce((s, a) => s + a.count, 0)} stickers)`
+        `Pack .wastickers listo (${archives.reduce((s, a) => s + a.count, 0)} stickers)`
       );
     } catch (err) {
       if (err.name !== "AbortError") {
-        if (modalStatus) modalStatus.textContent = `✗ ${err.message}`;
+        if (modalStatus) modalStatus.textContent = `Error: ${err.message}`;
         showToast(`Error creando pack: ${err.message}`, "err");
       }
     } finally {
@@ -281,7 +276,7 @@ export function initPackView() {
         studioConfig: applyStudio ? getStudioSettings() : null,
         onProgress: ({ current, total, name, pct }) => {
           setStatus(
-            `⟳ ${mode === "gif-all" ? "Codificando GIF" : "Procesando"} ${current}/${total}: ${name}…`,
+            `${mode === "gif-all" ? "Codificando GIF" : "Procesando"} ${current}/${total}: ${name}…`,
             "run"
           );
           fill?.style.setProperty("--pack-pct", `${pct}%`);
@@ -296,8 +291,8 @@ export function initPackView() {
         triggerBlobDownload(zipBlob, zipName);
         showToast(
           mode === "gif-all"
-            ? `🎞️ Pack GIF descargado: ${done} GIFs${errors ? ` (${errors} omitidos)` : ""}`
-            : `📦 Pack ZIP descargado: ${done} stickers${errors ? ` (${errors} omitidos)` : ""}`
+            ? `Pack GIF descargado: ${done} GIFs${errors ? ` (${errors} omitidos)` : ""}`
+            : `Pack ZIP descargado: ${done} stickers${errors ? ` (${errors} omitidos)` : ""}`
         );
       } else {
         showToast("No se pudo procesar ningún emote del pack.", "err");
@@ -314,7 +309,6 @@ export function initPackView() {
   zipBtn?.addEventListener("click", () => executeZipDownload(null));
   gifZipBtn?.addEventListener("click", () => executeZipDownload("gif-all"));
 
-  // Single-shot Multi-File Batch Share to WhatsApp Chat
   sharePackBtn?.addEventListener("click", async () => {
     if (!state.packQueue.length) return;
     const applyStudio = Boolean(
@@ -330,15 +324,15 @@ export function initPackView() {
         queue: state.packQueue,
         studioConfig: applyStudio ? getStudioSettings() : null,
         onProgress: ({ current, total, name, pct }) => {
-          setStatus(`⟳ Preparando lote ${current}/${total}: ${name}…`, "run");
+          setStatus(`Preparando lote ${current}/${total}: ${name}…`, "run");
           fill?.style.setProperty("--pack-pct", `${pct}%`);
         },
       });
       if (sent > 0) {
         showToast(
           mode === "batch"
-            ? `💬 ${sent} stickers enviados en un solo lote`
-            : `💬 ${sent} stickers compartidos`
+            ? `${sent} stickers enviados en un solo lote`
+            : `${sent} stickers compartidos`
         );
       }
     } catch (err) {

@@ -1,6 +1,8 @@
 @layer base {
   html {
     box-sizing: border-box;
+    scrollbar-gutter: stable;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
 
   body,
@@ -38,20 +40,30 @@
     box-sizing: border-box;
   }
 
+  :where(canvas, img, svg) {
+    display: block;
+  }
+
   body {
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
+    font-size-adjust: from-font;
     accent-color: var(--accent);
-    min-block-size: 100vh;
+    min-block-size: 100dvh;
     display: flex;
     flex-direction: column;
-    padding-block-end: 6.5rem;
-    overflow-x: hidden;
+    padding-block-end: 6.75rem;
+    overflow-x: clip;
     line-height: 1.5;
   }
 
-  /* Decorative background grid & ambient glow */
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 30%, transparent);
+    color: var(--text);
+  }
+
+  /* Decorative background grid & ambient OKLab glow */
   body::before {
     content: "";
     position: fixed;
@@ -60,7 +72,7 @@
       linear-gradient(var(--line) 1px, transparent 1px),
       linear-gradient(90deg, var(--line) 1px, transparent 1px);
     background-size: 44px 44px;
-    opacity: 0.28;
+    opacity: 0.24;
     pointer-events: none;
     z-index: 0;
   }
@@ -68,12 +80,12 @@
   body::after {
     content: "";
     position: fixed;
-    top: -120px;
-    left: 50%;
-    transform: translateX(-50%);
-    inline-size: min(920px, 100vw);
+    inset-block-start: -120px;
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    inline-size: min(960px, 100%);
     block-size: 360px;
-    background: radial-gradient(ellipse, var(--accent-soft) 0%, transparent 68%);
+    background: radial-gradient(ellipse var(--in-oklab), var(--accent-soft) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -81,7 +93,7 @@
   kbd {
     font-family: var(--font-mono);
     font-size: 0.68rem;
-    padding: 0.1rem 0.38rem;
+    padding: 0.12rem 0.4rem;
     border-radius: 4px;
     border: 1px solid var(--line-strong);
     background: var(--surface-input);
@@ -91,6 +103,7 @@
   code {
     font-family: var(--font-mono);
     font-size: 0.9em;
+    overflow-wrap: break-word;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -122,26 +135,51 @@
     display: none !important;
   }
 
-  /* Custom Scrollbars (customize-scrollbar-color-and-thickness) */
+  /* Accessible Scrollbars: keep scrollbar-width: auto so thumb target stays usable */
   .custom-scroll {
     scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-    scrollbar-width: thin;
+    overscroll-behavior: contain;
   }
 
-  @supports not (scrollbar-color: auto) {
-    .custom-scroll {
-      scrollbar-width: auto;
+  /* ── CSS-Driven Vector Icon Engine + Class-Hook Fallback (modern-web-guidance icons) ── */
+  .icon:empty {
+    --icon-start: var(--icon);
+  }
+
+  :where(.icon-start, .icon:empty)::before {
+    content: image-set(linear-gradient(transparent 0 100%), var(--icon-start)) / var(--icon-style-alt, "");
+    display: inline-block;
+    inline-size: var(--icon-style-size, 1.08em);
+    block-size: var(--icon-style-size, 1.08em);
+    background-color: var(--icon-style-color, currentColor);
+    mask: var(--icon-start) no-repeat center / contain;
+    vertical-align: calc(0.5cap - var(--icon-style-size, 1.08em) / 2 + var(--icon-style-voffset, -0.02em));
+    flex: none;
+    pointer-events: none;
+    forced-color-adjust: none;
+  }
+
+  :where(.icon-start:not(.icon, :empty))::before {
+    margin-inline-end: var(--icon-style-spacing, 0.4em);
+  }
+
+  @container style(--icon-start) {
+    ::before {
+      --icon-start: inherit;
+      content: "" / var(--icon-style-alt, "");
+      display: inline-block;
+      inline-size: var(--icon-style-size, 1.08em);
+      block-size: var(--icon-style-size, 1.08em);
+      background-color: var(--icon-style-color, currentColor);
+      mask: var(--icon-start) no-repeat center / contain;
+      vertical-align: calc(0.5cap - var(--icon-style-size, 1.08em) / 2 + var(--icon-style-voffset, -0.02em));
+      flex: none;
+      pointer-events: none;
+      forced-color-adjust: none;
     }
-    .custom-scroll::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-      background: var(--scrollbar-thumb);
-      border-radius: 4px;
-    }
-    .custom-scroll::-webkit-scrollbar-track {
-      background: var(--scrollbar-track);
+
+    :where(:not(.icon, :empty))::before {
+      margin-inline-end: var(--icon-style-spacing, 0.4em);
     }
   }
 }

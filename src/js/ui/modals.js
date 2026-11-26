@@ -37,7 +37,7 @@ export function initModalsAndTheme() {
     }
   }
 
-  // Theme initialization & toggle
+  // Theme initialization & toggle (uses CSS vector icons instead of emojis)
   const themeBtn = document.getElementById("theme-toggle");
   const saved = loadSavedTheme();
   const prefersLight =
@@ -46,11 +46,15 @@ export function initModalsAndTheme() {
   const initialTheme = saved || (prefersLight ? "light" : "dark");
 
   const applyTheme = (theme) => {
-    document.documentElement.setAttribute("data-theme", theme);
+    const isDark = theme !== "light";
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
     if (themeBtn) {
-      themeBtn.textContent = theme === "dark" ? "☀️ Claro" : "🌙 Oscuro";
+      themeBtn.classList.toggle("ico-sun", isDark);
+      themeBtn.classList.toggle("ico-moon", !isDark);
+      themeBtn.textContent = isDark ? "Claro" : "Oscuro";
+      themeBtn.setAttribute("aria-pressed", String(!isDark));
     }
-    saveThemePreference(theme);
+    saveThemePreference(isDark ? "dark" : "light");
   };
 
   applyTheme(initialTheme);
