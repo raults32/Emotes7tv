@@ -1,47 +1,106 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>7TV Sticker</title>
+    <title>7TV Sticker Studio — Convertidor y Editor sin Contorno</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-      * {
+      @property --fade-start {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 0px;
+      }
+
+      @property --fade-end {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 0px;
+      }
+
+      *,
+      *::before,
+      *::after {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
 
       :root {
-        --bg: #0b0c0e;
-        --card: #13141a;
-        --line: #1f2029;
+        color-scheme: dark;
+        --bg: #090a0f;
+        --bg-elevated: #11131c;
+        --card: #131621;
+        --card-hover: #191d2b;
+        --surface-input: #0b0d14;
+        --line: #23283b;
+        --line-strong: #323954;
         --accent: #00e5ff;
+        --accent-ink: #00181f;
+        --accent-soft: rgba(0, 229, 255, 0.12);
         --green: #39ff7e;
-        --red: #ff3f5a;
-        --yellow: #ffe135;
-        --text: #e8eaf0;
-        --muted: #4a4d5e;
+        --green-ink: #02200d;
+        --red: #ff4766;
+        --yellow: #ffd83b;
+        --text: #eef1f8;
+        --text-soft: #9aa3bd;
+        --muted: #68728f;
         --wa: #25d366;
+        --wa-ink: #041e0d;
+        --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.45);
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --scrollbar-thumb: #5c6684;
+        --scrollbar-track: #10121b;
+      }
+
+      html[data-theme="light"] {
+        color-scheme: light;
+        --bg: #f3f5fa;
+        --bg-elevated: #ffffff;
+        --card: #ffffff;
+        --card-hover: #f0f4fc;
+        --surface-input: #f6f8fc;
+        --line: #dce2ef;
+        --line-strong: #b9c3da;
+        --accent: #007799;
+        --accent-ink: #ffffff;
+        --accent-soft: rgba(0, 119, 153, 0.1);
+        --green: #0f8a43;
+        --green-ink: #ffffff;
+        --red: #d92648;
+        --yellow: #b07800;
+        --text: #141824;
+        --text-soft: #49526b;
+        --muted: #66708a;
+        --wa: #1da851;
+        --wa-ink: #ffffff;
+        --shadow-lg: 0 16px 36px rgba(18, 26, 48, 0.09);
+        --scrollbar-thumb: #7b86a2;
+        --scrollbar-track: #e7ebf4;
       }
 
       body {
         background: var(--bg);
         color: var(--text);
-        font-family: "DM Mono", monospace;
+        font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+        accent-color: var(--accent);
         min-height: 100vh;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        padding: 0 1rem 5rem;
+        padding-bottom: 6.5rem;
         overflow-x: hidden;
+        line-height: 1.5;
       }
 
-      /* ── Grid bg ── */
+      /* Decorative background grid & ambient glow */
       body::before {
         content: "";
         position: fixed;
@@ -49,860 +108,2953 @@
         background-image:
           linear-gradient(var(--line) 1px, transparent 1px),
           linear-gradient(90deg, var(--line) 1px, transparent 1px);
-        background-size: 40px 40px;
-        opacity: 0.35;
+        background-size: 44px 44px;
+        opacity: 0.28;
         pointer-events: none;
         z-index: 0;
       }
 
-      /* ── Glow blobs ── */
       body::after {
         content: "";
         position: fixed;
-        top: -10%;
+        top: -120px;
         left: 50%;
         transform: translateX(-50%);
-        width: 700px;
-        height: 300px;
+        width: min(920px, 100vw);
+        height: 360px;
         background: radial-gradient(
           ellipse,
-          rgba(0, 229, 255, 0.08) 0%,
-          transparent 65%
+          var(--accent-soft) 0%,
+          transparent 68%
         );
         pointer-events: none;
         z-index: 0;
       }
 
-      /* ── Header ── */
-      header {
-        position: relative;
-        z-index: 1;
-        text-align: center;
-        padding: 3rem 0 2rem;
+      .mono {
+        font-family: "DM Mono", monospace;
+      }
+
+      .visually-hidden {
+        position: absolute !important;
+        clip-path: inset(50%) !important;
+        overflow: hidden !important;
+        width: 1px !important;
+        height: 1px !important;
+        margin: -1px !important;
+        padding: 0 !important;
+        border: 0 !important;
+        white-space: nowrap !important;
+      }
+
+      /* ── Topbar ── */
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        backdrop-filter: blur(14px);
+        background: color-mix(in srgb, var(--bg) 82%, transparent);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .topbar-inner {
+        max-width: 1260px;
+        margin: 0 auto;
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        flex-wrap: wrap;
       }
 
       .logo {
         font-family: "Bebas Neue", sans-serif;
-        font-size: clamp(3.5rem, 12vw, 6.5rem);
-        letter-spacing: 0.04em;
+        font-size: clamp(1.9rem, 4vw, 2.5rem);
+        letter-spacing: 0.05em;
         line-height: 1;
-        background: linear-gradient(
-          135deg,
-          var(--accent) 0%,
-          var(--green) 100%
-        );
+        background: linear-gradient(135deg, var(--accent) 0%, var(--green) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        filter: drop-shadow(0 0 30px rgba(0, 229, 255, 0.3));
       }
 
-      .logo-sub {
-        font-size: 0.65rem;
-        color: var(--muted);
-        letter-spacing: 0.25em;
-        text-transform: uppercase;
-        margin-top: 0.3rem;
+      .brand-tag {
+        font-family: "DM Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--text-soft);
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--bg-elevated);
       }
 
-      /* ── Card ── */
-      .card {
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      /* ── Status Banner (persistent companion to toasts) ── */
+      .status-strip {
+        max-width: 1260px;
+        width: 100%;
+        margin: 0.85rem auto 0;
+        padding: 0 1.25rem;
         position: relative;
         z-index: 1;
+      }
+
+      .status-pill {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.55rem 0.9rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
+        background: var(--card);
+        font-size: 0.8rem;
+        color: var(--text-soft);
+      }
+
+      .status-left {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        min-width: 0;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        flex-shrink: 0;
+      }
+
+      .status-pill.ok .dot {
+        background: var(--green);
+      }
+      .status-pill.err .dot {
+        background: var(--red);
+      }
+      .status-pill.run .dot {
+        background: var(--accent);
+        animation: pulse 1.1s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.45;
+          transform: scale(1.3);
+        }
+      }
+
+      .kbd-hint {
+        font-family: "DM Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--muted);
+        display: none;
+      }
+
+      @media (min-width: 768px) {
+        .kbd-hint {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+      }
+
+      kbd {
+        font-family: "DM Mono", monospace;
+        font-size: 0.68rem;
+        padding: 0.1rem 0.38rem;
+        border-radius: 4px;
+        border: 1px solid var(--line-strong);
+        background: var(--surface-input);
+        color: var(--text);
+      }
+
+      /* ── Main Two-Column Workspace ── */
+      .workspace {
+        position: relative;
+        z-index: 1;
+        max-width: 1260px;
+        width: 100%;
+        margin: 1rem auto 0;
+        padding: 0 1.25rem;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        align-items: start;
+      }
+
+      @media (min-width: 980px) {
+        .workspace {
+          grid-template-columns: minmax(0, 1.28fr) minmax(380px, 0.92fr);
+        }
+      }
+
+      /* ── Cards ── */
+      .card {
         background: var(--card);
         border: 1px solid var(--line);
-        border-radius: 4px;
-        width: 100%;
-        max-width: 500px;
-        margin-bottom: 1rem;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
         overflow: hidden;
+      }
+
+      .studio-sticky {
+        position: static;
+      }
+
+      @media (min-width: 980px) {
+        .studio-sticky {
+          position: sticky;
+          top: 4.6rem;
+        }
       }
 
       .card-header {
-        padding: 0.6rem 1rem;
+        padding: 0.85rem 1.15rem;
         border-bottom: 1px solid var(--line);
-        font-size: 0.6rem;
-        letter-spacing: 0.2em;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .card-title {
+        font-family: "DM Mono", monospace;
+        font-size: 0.73rem;
+        letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--muted);
+        color: var(--text-soft);
         display: flex;
         align-items: center;
         gap: 0.5rem;
       }
-      .card-header .dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--accent);
-        box-shadow: 0 0 6px var(--accent);
-      }
 
-      .card-body {
-        padding: 1.2rem;
-      }
-
-      /* ── Tabs ── */
-      .tabs {
-        display: flex;
-        gap: 0;
-        border: 1px solid var(--line);
-        border-radius: 3px;
-        overflow: hidden;
-        margin-bottom: 1rem;
-      }
-      .tab-btn {
-        flex: 1;
-        padding: 0.55rem;
-        background: transparent;
-        border: none;
-        color: var(--muted);
-        font-family: "DM Mono", monospace;
-        font-size: 0.72rem;
-        cursor: pointer;
-        transition:
-          background 0.15s,
-          color 0.15s;
-      }
-      .tab-btn.active {
-        background: var(--line);
-        color: var(--accent);
-      }
-      .tab-btn:not(:last-child) {
-        border-right: 1px solid var(--line);
-      }
-
-      /* ── Input ── */
-      .input-row {
-        display: flex;
-        gap: 0.5rem;
-      }
-      input[type="text"] {
-        flex: 1;
-        background: #0b0c0e;
-        border: 1px solid var(--line);
-        border-radius: 3px;
-        color: var(--text);
-        font-family: "DM Mono", monospace;
-        font-size: 0.75rem;
-        padding: 0.65rem 0.9rem;
-        outline: none;
-        transition: border-color 0.2s;
-      }
-      input[type="text"]:focus {
-        border-color: var(--accent);
-      }
-      input[type="text"]::placeholder {
-        color: var(--muted);
-      }
-
+      /* ── Buttons ── */
       .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
         background: var(--accent);
-        color: #000;
-        border: none;
-        border-radius: 3px;
-        font-family: "DM Mono", monospace;
-        font-weight: 500;
-        font-size: 0.75rem;
-        padding: 0.65rem 1.1rem;
+        color: var(--accent-ink);
+        border: 1px solid transparent;
+        border-radius: var(--radius-sm);
+        font-family: inherit;
+        font-weight: 600;
+        font-size: 0.82rem;
+        padding: 0.6rem 1rem;
         cursor: pointer;
         transition:
+          background-color 0.15s,
+          border-color 0.15s,
           opacity 0.15s,
           transform 0.1s;
         white-space: nowrap;
+        text-decoration: none;
       }
-      .btn:hover {
-        opacity: 0.85;
+
+      .btn:hover:not(:disabled) {
+        opacity: 0.9;
       }
-      .btn:active {
-        transform: scale(0.97);
+
+      .btn:active:not(:disabled) {
+        transform: scale(0.98);
       }
-      .btn.ghost {
-        background: transparent;
-        border: 1px solid var(--line);
+
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .btn:focus-visible,
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.42rem 0.72rem;
+      }
+
+      .btn-ghost {
+        background: var(--surface-input);
+        border-color: var(--line);
         color: var(--text);
       }
-      .btn.green {
-        background: var(--green);
+
+      .btn-ghost:hover:not(:disabled) {
+        border-color: var(--line-strong);
+        background: var(--card-hover);
       }
-      .btn.wa-btn {
+
+      .btn-green {
+        background: var(--green);
+        color: var(--green-ink);
+      }
+
+      .btn-wa {
         background: var(--wa);
-        color: #fff;
-        width: 100%;
-        padding: 0.8rem;
+        color: var(--wa-ink);
+      }
+
+      .btn-danger {
+        background: transparent;
+        border-color: color-mix(in srgb, var(--red) 45%, var(--line));
+        color: var(--red);
+      }
+
+      /* ── Accessible Scrollable Tablist (modern-web-guidance: tabs) ── */
+      .tablist-bar {
+        border-bottom: 1px solid var(--line);
+        background: var(--bg-elevated);
+      }
+
+      .tablist.scroller {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: inline proximity;
+        --fade-size: 2.5rem;
+        scroll-padding-inline: var(--fade-size);
+        scrollbar-width: none;
+        --fade-dir: right;
+        --fade-start-pos: 0;
+        --fade-end-pos: 100%;
+        mask:
+          linear-gradient(black, black) no-clip subtract,
+          linear-gradient(to var(--fade-dir), black, transparent)
+            var(--fade-start-pos) 0 / var(--fade-start) 100% no-repeat no-clip,
+          linear-gradient(to var(--fade-dir), transparent, black)
+            var(--fade-end-pos) 0 / var(--fade-end) 100% no-repeat no-clip;
+        animation:
+          reveal-fade-start linear both,
+          hide-fade-end linear both;
+        animation-timeline: scroll(self inline);
+        animation-range:
+          0 var(--fade-size),
+          calc(100% - var(--fade-size)) 100%;
+      }
+
+      .tablist.scroller:dir(rtl) {
+        --fade-dir: left;
+        --fade-start-pos: 100%;
+        --fade-end-pos: 0;
+      }
+
+      .tablist.scroller::-webkit-scrollbar {
+        display: none;
+      }
+
+      @keyframes reveal-fade-start {
+        to {
+          --fade-start: var(--fade-size);
+        }
+      }
+
+      @keyframes hide-fade-end {
+        from {
+          --fade-end: var(--fade-size);
+        }
+      }
+
+      .tablist.scroller.more-start {
+        --fade-start: var(--fade-size);
+      }
+      .tablist.scroller.more-end {
+        --fade-end: var(--fade-size);
+      }
+
+      .tab-item {
+        position: relative;
+        flex: none;
+        scroll-snap-align: start;
+        background: transparent;
+        border: none;
+        color: var(--text-soft);
+        font-family: inherit;
         font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0.85rem 1.05rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        transition: color 0.15s, background-color 0.15s;
+      }
+
+      .tab-item:hover {
+        color: var(--text);
+        background: var(--card-hover);
+      }
+
+      /* Indicating selected tab from aria-selected with shape (::after border) & no dimension shift */
+      .tab-item[aria-selected="true"] {
+        color: var(--accent);
+      }
+
+      .tab-item[aria-selected="true"]::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        border-block-end: 3px solid var(--accent);
+      }
+
+      /* Panels container: zero gap and no box styles on [role="tabpanel"] so hidden="until-found" collapses to 0px cleanly */
+      .tabpanels-stack {
+        display: block;
+      }
+
+      .tabpanels-stack > [role="tabpanel"][hidden] {
+        pointer-events: none;
+      }
+
+      /* Put padding on inner wrapper, NEVER on [role="tabpanel"] directly */
+      .panel-inner {
+        padding: 1.15rem;
+      }
+
+      /* ── Custom Scrollbars (modern-web-guidance: customize-scrollbar-color-and-thickness) ── */
+      .custom-scroll {
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        scrollbar-width: thin;
+      }
+
+      @supports not (scrollbar-color: auto) {
+        .custom-scroll {
+          scrollbar-width: auto;
+        }
+        .custom-scroll::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+          background: var(--scrollbar-thumb);
+          border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+          background: var(--scrollbar-track);
+        }
+      }
+
+      /* ── Inputs & Forms ── */
+      .search-form {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .input-text {
+        flex: 1;
+        min-width: 180px;
+        background: var(--surface-input);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 0.85rem;
+        padding: 0.62rem 0.85rem;
+        transition: border-color 0.15s;
+      }
+
+      .input-text::placeholder {
+        color: var(--muted);
+      }
+
+      .input-text:focus {
+        border-color: var(--accent);
+      }
+
+      .select-input {
+        background: var(--surface-input);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 0.78rem;
+        padding: 0.5rem 0.7rem;
+        cursor: pointer;
+      }
+
+      /* Chips & Toolbar */
+      .chips-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+      }
+
+      .chip {
+        background: var(--surface-input);
+        border: 1px solid var(--line);
+        color: var(--text-soft);
+        border-radius: 999px;
+        padding: 0.3rem 0.7rem;
+        font-size: 0.74rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .chip:hover {
+        border-color: var(--line-strong);
+        color: var(--text);
+      }
+
+      .chip.active {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .filter-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-top: 0.85rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--line);
+      }
+
+      .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      /* Accessible Checkboxes + Fallback (brand-consistent-forms) */
+      .check-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.42rem;
+        font-size: 0.76rem;
+        color: var(--text-soft);
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .check-label input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        cursor: pointer;
+      }
+
+      @supports not (accent-color: auto) {
+        .check-label {
+          position: relative;
+          padding-left: 1.5rem;
+        }
+        .check-label input[type="checkbox"] {
+          position: absolute !important;
+          clip-path: inset(50%) !important;
+          overflow: hidden !important;
+          width: 1px !important;
+          height: 1px !important;
+          margin: -1px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          white-space: nowrap !important;
+        }
+        .check-label input[type="checkbox"] + span::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 1.05rem;
+          height: 1.05rem;
+          border: 2px solid var(--line-strong);
+          border-radius: 4px;
+          background: var(--surface-input);
+        }
+        .check-label input[type="checkbox"]:focus-visible + span::before {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
+        }
+        .check-label input[type="checkbox"]:checked + span::before {
+          background: var(--accent);
+          border-color: var(--accent);
+        }
+        .check-label input[type="checkbox"]:checked + span::after {
+          content: "✓";
+          position: absolute;
+          left: 0.2rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--accent-ink);
+          font-size: 0.75rem;
+          font-weight: 700;
+        }
+      }
+
+      /* ── Emote Gallery Grid ── */
+      .emote-grid {
+        margin-top: 0.9rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+        gap: 0.6rem;
+        max-height: 520px;
+        overflow-y: auto;
+        padding: 0.15rem;
+      }
+
+      .emote-tile {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.35rem;
+        padding: 0.65rem 0.45rem 0.5rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
+        background: var(--bg-elevated);
+        cursor: pointer;
+        transition:
+          border-color 0.16s,
+          transform 0.14s,
+          background-color 0.16s,
+          box-shadow 0.16s;
+        text-align: center;
+      }
+
+      .emote-tile:hover {
+        border-color: var(--line-strong);
+        background: var(--card-hover);
+        transform: translateY(-2px);
+      }
+
+      .emote-tile.active-studio {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent);
+      }
+
+      .emote-tile.in-pack {
+        border-color: var(--green);
+        background: color-mix(in srgb, var(--green) 7%, var(--bg-elevated));
+      }
+
+      .emote-thumb-wrap {
+        width: 64px;
+        height: 64px;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
-        border-radius: 3px;
-        margin-top: 0.8rem;
       }
 
-      /* ── Dropzone ── */
-      #dropzone {
-        border: 1px dashed var(--muted);
+      .emote-thumb-wrap img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+
+      .emote-name {
+        font-family: "DM Mono", monospace;
+        font-size: 0.68rem;
+        color: var(--text);
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tile-badge-anim {
+        position: absolute;
+        bottom: 26px;
+        right: 5px;
+        font-family: "DM Mono", monospace;
+        font-size: 0.55rem;
+        padding: 1px 4px;
         border-radius: 3px;
-        padding: 2rem;
+        background: rgba(0, 0, 0, 0.75);
+        color: var(--accent);
+        pointer-events: none;
+      }
+
+      .tile-btn {
+        position: absolute;
+        top: 5px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid var(--line-strong);
+        background: color-mix(in srgb, var(--bg) 85%, transparent);
+        color: var(--text-soft);
+        font-size: 0.72rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.15s;
+        z-index: 2;
+      }
+
+      .tile-btn:hover {
+        transform: scale(1.1);
+        color: var(--text);
+        border-color: var(--accent);
+      }
+
+      .tile-fav {
+        left: 5px;
+      }
+
+      .tile-fav.active {
+        color: var(--yellow);
+        border-color: var(--yellow);
+      }
+
+      .tile-pack {
+        right: 5px;
+      }
+
+      .emote-tile.in-pack .tile-pack {
+        background: var(--green);
+        border-color: var(--green);
+        color: var(--green-ink);
+        font-weight: 700;
+      }
+
+      .load-more-row {
+        margin-top: 0.85rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .empty-state {
+        padding: 2.2rem 1rem;
         text-align: center;
         color: var(--muted);
-        font-size: 0.75rem;
+        font-size: 0.84rem;
+      }
+
+      /* Streamer results list */
+      .channel-list {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+      }
+
+      .channel-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.38rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: var(--bg-elevated);
+        color: var(--text);
+        font-size: 0.76rem;
         cursor: pointer;
+        transition: border-color 0.15s;
+      }
+
+      .channel-pill:hover {
+        border-color: var(--accent);
+      }
+
+      .channel-pill img {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      /* Dropzone */
+      .dropzone {
+        border: 2px dashed var(--line-strong);
+        border-radius: var(--radius-md);
+        padding: 2.2rem 1.2rem;
+        text-align: center;
+        background: var(--surface-input);
+        color: var(--text-soft);
+        cursor: pointer;
+        position: relative;
         transition:
           border-color 0.2s,
-          background 0.2s;
-        position: relative;
+          background-color 0.2s;
       }
-      #dropzone.over {
+
+      .dropzone.over,
+      .dropzone:hover {
         border-color: var(--accent);
-        background: rgba(0, 229, 255, 0.04);
+        background: var(--accent-soft);
       }
-      #dropzone input {
+
+      .dropzone input[type="file"] {
         position: absolute;
         inset: 0;
         opacity: 0;
         cursor: pointer;
       }
-      #dropzone .icon {
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-        display: block;
-      }
-      #dropzone .hint {
-        font-size: 0.62rem;
-        color: #2e303d;
-        margin-top: 0.4rem;
-      }
 
-      /* ── Status bar ── */
-      #status {
-        position: relative;
-        z-index: 1;
-        font-size: 0.68rem;
-        text-align: center;
-        min-height: 1.4em;
-        color: var(--muted);
-        letter-spacing: 0.05em;
-      }
-      #status.ok {
-        color: var(--green);
-      }
-      #status.err {
-        color: var(--red);
-      }
-      #status.run {
-        color: var(--accent);
-      }
-
-      /* ── Preview card ── */
-      #preview-card {
-        display: none;
-      }
-
-      .preview-inner {
+      /* ── Right Panel: Sticker Studio ── */
+      .studio-body {
+        padding: 1.15rem;
         display: flex;
         flex-direction: column;
-        align-items: center;
         gap: 1rem;
       }
 
-      .frame-wrap {
-        position: relative;
-        width: 180px;
-        height: 180px;
+      .bg-Subtabs {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+      }
+
+      .bg-pills {
+        display: flex;
+        gap: 0.3rem;
+        flex-wrap: wrap;
+      }
+
+      .bg-pill {
+        font-size: 0.7rem;
+        padding: 0.28rem 0.58rem;
+        border-radius: var(--radius-sm);
         border: 1px solid var(--line);
-        border-radius: 4px;
-        background: repeating-conic-gradient(#17181f 0% 25%, #0f1016 0% 50%) 0
-          0/18px 18px;
-        overflow: hidden;
+        background: var(--surface-input);
+        color: var(--text-soft);
+        cursor: pointer;
+      }
+
+      .bg-pill.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      /* Preview Stage */
+      .stage-outer {
+        position: relative;
+        width: 100%;
+        min-height: 270px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 1.1rem;
+        overflow: hidden;
+        transition: background 0.2s;
       }
-      .frame-wrap img,
-      .frame-wrap canvas {
+
+      .stage-outer[data-bg="checker"] {
+        background: repeating-conic-gradient(#181b26 0% 25%, #10121a 0% 50%) 0 0 /
+          20px 20px;
+      }
+
+      html[data-theme="light"] .stage-outer[data-bg="checker"] {
+        background: repeating-conic-gradient(#e4e8f2 0% 25%, #f8f9fc 0% 50%) 0 0 /
+          20px 20px;
+      }
+
+      .stage-outer[data-bg="wa-dark"] {
+        background: radial-gradient(
+            circle at 20% 20%,
+            rgba(37, 211, 102, 0.08),
+            transparent 60%
+          ),
+          #0b141a;
+      }
+
+      .stage-outer[data-bg="wa-light"] {
+        background: #efeae2;
+      }
+
+      .stage-outer[data-bg="discord"] {
+        background: #313338;
+      }
+
+      .chat-mockup {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .chat-time-pill {
+        display: none;
+        margin-top: 0.35rem;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.65rem;
+        background: rgba(11, 20, 26, 0.65);
+        color: #d1d7db;
+      }
+
+      .stage-outer[data-bg="wa-dark"] .chat-time-pill,
+      .stage-outer[data-bg="wa-light"] .chat-time-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .frame-box {
+        width: 220px;
+        height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .frame-box canvas,
+      .frame-box img {
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
       }
-      .frame-badge {
+
+      .stage-badges {
         position: absolute;
-        bottom: 5px;
-        right: 5px;
-        background: rgba(0, 0, 0, 0.75);
-        color: var(--accent);
-        font-size: 0.58rem;
-        padding: 2px 6px;
-        border-radius: 2px;
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.4rem;
+        pointer-events: none;
       }
 
-      .meta {
-        width: 100%;
-        font-size: 0.68rem;
-        line-height: 1.9;
-        color: var(--muted);
+      .stage-badge {
+        font-family: "DM Mono", monospace;
+        font-size: 0.65rem;
+        padding: 0.18rem 0.5rem;
+        border-radius: 4px;
+        background: rgba(9, 10, 15, 0.82);
+        color: #eef1f8;
+        border: 1px solid rgba(255, 255, 255, 0.12);
       }
-      .meta b {
+
+      .stage-badge.ok {
+        color: #39ff7e;
+      }
+
+      .stage-badge.warn {
+        color: #ffd83b;
+      }
+
+      /* Animated Mode Switch Banner */
+      .anim-banner {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        padding: 0.6rem 0.8rem;
+        border-radius: var(--radius-sm);
+        background: var(--accent-soft);
+        border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+        font-size: 0.76rem;
+      }
+
+      /* Studio Controls Accordion / Sections */
+      .controls-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+      }
+
+      .control-box {
+        padding: 0.8rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
+        background: var(--bg-elevated);
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .control-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.76rem;
+        font-weight: 600;
         color: var(--text);
       }
-      .meta .ok {
-        color: var(--green);
-      }
-      .meta .warn {
-        color: var(--yellow);
-      }
 
-      .actions {
+      .control-row {
         display: flex;
+        align-items: center;
         gap: 0.5rem;
-        width: 100%;
-      }
-      .actions .btn {
-        flex: 1;
+        flex-wrap: wrap;
       }
 
-      /* ── Nota CORS ── */
-      .cors-note {
-        position: relative;
-        z-index: 1;
+      .seg-group {
+        display: flex;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
         width: 100%;
-        max-width: 500px;
-        background: #13120a;
-        border: 1px solid #3a3010;
-        border-radius: 4px;
-        padding: 0.8rem 1rem;
-        font-size: 0.65rem;
-        color: #a08840;
-        line-height: 1.7;
+      }
+
+      .seg-btn {
+        flex: 1;
+        padding: 0.42rem 0.5rem;
+        font-size: 0.73rem;
+        font-family: inherit;
+        background: var(--surface-input);
+        color: var(--text-soft);
+        border: none;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+
+      .seg-btn:not(:last-child) {
+        border-right: 1px solid var(--line);
+      }
+
+      .seg-btn.active {
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+
+      /* Native Range Slider (modern-web-guidance: slider) */
+      .slider-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+
+      .slider-label-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.74rem;
+        color: var(--text-soft);
+      }
+
+      input[type="range"] {
+        --slider-track-size: 0.42rem;
+        --slider-thumb-size: 1.08rem;
+        --slider-track-radius: 999px;
+        --slider-thumb-radius: 50%;
+        --slider-track-color: #3a425e;
+        --slider-fill-color: var(--accent);
+        --slider-thumb-color: var(--slider-fill-color);
+        --slider-direction: to right;
+
+        --attr-min: attr(min type(<number>), 0);
+        --attr-max: attr(max type(<number>), 100);
+        --control-value: attr(value type(<number>), 50);
+        --slider-progress: calc(
+          progress(var(--control-value), var(--attr-min), var(--attr-max)) * 100%
+        );
+
+        appearance: none;
+        inline-size: 100%;
+        block-size: 1.9rem;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        cursor: pointer;
+      }
+
+      html[data-theme="light"] input[type="range"] {
+        --slider-track-color: #b7c1d8;
+      }
+
+      input[type="range"]:dir(rtl) {
+        --slider-direction: to left;
+      }
+
+      @supports not (opacity: progress(1, 0, 100)) {
+        input[type="range"] {
+          --slider-progress: calc(
+            (var(--control-value) - var(--attr-min)) /
+              (var(--attr-max) - var(--attr-min)) * 100%
+          );
+        }
+      }
+
+      input[type="range"]::-webkit-slider-runnable-track {
+        block-size: var(--slider-track-size);
+        border: 0;
+        border-radius: var(--slider-track-radius);
+        background: linear-gradient(
+          var(--slider-direction),
+          var(--slider-fill-color) var(--slider-progress),
+          var(--slider-track-color) var(--slider-progress)
+        );
+      }
+
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        inline-size: var(--slider-thumb-size);
+        block-size: var(--slider-thumb-size);
+        margin-block-start: calc(
+          (var(--slider-track-size) - var(--slider-thumb-size)) / 2
+        );
+        border: 0;
+        border-radius: var(--slider-thumb-radius);
+        background: var(--slider-thumb-color);
+      }
+
+      input[type="range"]::-moz-range-track {
+        block-size: var(--slider-track-size);
+        border: 0;
+        border-radius: var(--slider-track-radius);
+        background: var(--slider-track-color);
+      }
+
+      input[type="range"]::-moz-range-progress {
+        block-size: var(--slider-track-size);
+        border-radius: var(--slider-track-radius);
+        background: var(--slider-fill-color);
+      }
+
+      input[type="range"]::-moz-range-thumb {
+        inline-size: var(--slider-thumb-size);
+        block-size: var(--slider-thumb-size);
+        border: 0;
+        border-radius: var(--slider-thumb-radius);
+        background: var(--slider-thumb-color);
+      }
+
+      input[type="range"]:focus-visible {
+        outline: 2px solid var(--slider-fill-color);
+        outline-offset: 4px;
+      }
+
+      .color-swatch {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        padding: 2px;
+        cursor: pointer;
+      }
+
+      /* Export Buttons Stack */
+      .export-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
+      }
+
+      .export-actions .btn-full {
+        grid-column: 1 / -1;
+      }
+
+      /* ── Floating Pack Dock ── */
+      .pack-dock {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 40;
+        background: color-mix(in srgb, var(--card) 94%, transparent);
+        backdrop-filter: blur(16px);
+        border-top: 1px solid var(--line-strong);
+        box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.45);
         display: none;
       }
-      .cors-note b {
-        color: var(--yellow);
+
+      .pack-dock.visible {
+        display: block;
       }
 
-      /* ── Steps ── */
-      .steps {
+      .pack-dock-inner {
+        max-width: 1260px;
+        margin: 0 auto;
+        padding: 0.8rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .pack-top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .pack-strip {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        overflow-x: auto;
+        padding-bottom: 0.2rem;
+      }
+
+      .pack-thumb {
         position: relative;
-        z-index: 1;
+        flex: none;
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--line-strong);
+        background: var(--surface-input);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pack-thumb img {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+      }
+
+      .pack-thumb button {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: none;
+        background: var(--red);
+        color: #fff;
+        font-size: 0.68rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pack-progress {
         width: 100%;
-        max-width: 500px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.5rem;
-        margin-top: 0.5rem;
+        height: 6px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: var(--line);
+        display: none;
       }
-      .step {
+
+      .pack-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent), var(--green));
+        transition: width 0.25s;
+      }
+
+      /* ── Modal Dialog (modern-web-guidance: dialog & light-dismiss-a-dialog) ── */
+      dialog {
+        margin: auto;
+        width: min(560px, calc(100vw - 2rem));
         background: var(--card);
-        border: 1px solid var(--line);
-        border-radius: 4px;
-        padding: 0.9rem;
-        font-size: 0.65rem;
-        color: var(--muted);
-        line-height: 1.6;
+        color: var(--text);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-lg);
+        padding: 0;
+        box-shadow: var(--shadow-lg);
       }
-      .step-n {
-        font-family: "Bebas Neue", sans-serif;
-        font-size: 2rem;
-        line-height: 1;
+
+      dialog:modal {
+        overscroll-behavior: contain;
+      }
+
+      dialog::backdrop {
+        background-color: rgba(5, 7, 12, 0.72);
+        backdrop-filter: blur(4px);
+        overflow: hidden;
+        overscroll-behavior: contain;
+      }
+
+      .dialog-inner {
+        padding: 1.4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .dialog-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .dialog-head h1 {
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .guide-steps {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .guide-item {
+        padding: 0.85rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line);
+        background: var(--bg-elevated);
+        font-size: 0.83rem;
+        color: var(--text-soft);
+      }
+
+      .guide-item strong {
+        color: var(--text);
+        display: block;
         margin-bottom: 0.2rem;
       }
-      .step:nth-child(1) .step-n {
-        color: var(--accent);
+
+      /* ── Toast Notifications (modern-web-guidance: persistent-toast-notifications) ── */
+      #toast-region {
+        position: fixed;
+        top: 4.5rem;
+        right: 1rem;
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        pointer-events: none;
+        max-width: min(360px, calc(100vw - 2rem));
       }
-      .step:nth-child(2) .step-n {
-        color: var(--green);
+
+      .toast-item {
+        position: fixed;
+        inset: auto 1rem 1.25rem auto;
+        margin: 0;
+        width: min(350px, calc(100vw - 2rem));
+        padding: 0.75rem 0.9rem;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--line-strong);
+        background: var(--card);
+        color: var(--text);
+        box-shadow: var(--shadow-lg);
+        font-size: 0.8rem;
+        pointer-events: auto;
+        opacity: 0;
+        transform: translateY(8px);
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease,
+          overlay 0.2s ease,
+          display 0.2s ease;
+        transition-behavior: allow-discrete;
       }
-      .step:nth-child(3) .step-n {
-        color: var(--yellow);
+
+      .toast-item[popover]:is(:popover-open, .\:popover-open) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.65rem;
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      @supports not selector(:popover-open) {
+        [popover]:not(.\:popover-open) {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
       }
 
       footer {
         position: relative;
         z-index: 1;
-        margin-top: 3rem;
-        font-size: 0.6rem;
-        color: #222330;
         text-align: center;
+        padding: 2.5rem 1rem 1rem;
+        font-size: 0.75rem;
+        color: var(--muted);
       }
-
-      /* ── Spinner ── */
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      .spin {
-        display: inline-block;
-        animation: spin 0.8s linear infinite;
-      }
-
-      /* ── Pulse dot ── */
-      @keyframes pulse {
-        0%,
-        100% {
-          box-shadow: 0 0 4px var(--accent);
-        }
-        50% {
-          box-shadow: 0 0 12px var(--accent);
-        }
-      }
-      .dot {
-        animation: pulse 2s ease-in-out infinite;
-      }
-
-      /* ── Search results scrollbar ── */
-      #search-results::-webkit-scrollbar { width: 4px; }
-      #search-results::-webkit-scrollbar-track { background: var(--bg); }
-      #search-results::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
-      #search-results::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
-      /* ── Search result hover glow ── */
-      @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-      .search-item { animation: fadeIn 0.2s ease-out forwards; }
-
-      /* ── Multi-select ── */
-      .emote-card { position: relative; cursor: pointer; border: 1px solid var(--line); border-radius: 4px; padding: 0.4rem; text-align: center; transition: border-color 0.2s, box-shadow 0.2s; background: var(--card); }
-      .emote-card:hover { border-color: var(--accent); }
-      .emote-card.selected { border-color: var(--green); box-shadow: 0 0 8px rgba(57,255,126,0.2); }
-      .emote-card .check { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--muted); background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; transition: all 0.15s; }
-      .emote-card.selected .check { background: var(--green); border-color: var(--green); color: #000; }
-      .select-counter { font-size: 0.62rem; color: var(--muted); margin-top: 0.5rem; text-align: center; }
-      .select-counter b { color: var(--green); }
-      .select-counter .warn-count { color: var(--yellow); }
-
-      /* ── Selected queue card ── */
-      #queue-card { display: none; }
-      .queue-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
-      .queue-item { position: relative; width: 48px; height: 48px; border-radius: 4px; border: 1px solid var(--line); overflow: hidden; background: var(--bg); }
-      .queue-item img { width: 100%; height: 100%; object-fit: contain; }
-      .queue-item .remove { position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; background: var(--red); color: #fff; font-size: 0.55rem; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; line-height: 1; }
-      .queue-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-      .queue-actions .btn { flex: 1; min-width: 120px; }
-      .share-hint { font-size: 0.6rem; color: var(--muted); text-align: center; margin-top: 0.6rem; line-height: 1.6; }
-      .share-hint b { color: var(--wa); }
-
-      /* ── Progress bar ── */
-      .progress-wrap { width: 100%; height: 6px; background: var(--line); border-radius: 3px; margin-top: 0.6rem; overflow: hidden; display: none; }
-      .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 3px; width: 0%; transition: width 0.3s; }
     </style>
   </head>
   <body>
-    <header>
-      <div class="logo">7TV → WA</div>
-      <div class="logo-sub">sticker converter &nbsp;·&nbsp; sin contorno</div>
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="logo">7TV → STICKER STUDIO</span>
+          <span class="brand-tag">512×512 · Sin contorno blanco · 100% Navegador</span>
+        </div>
+        <div class="topbar-actions">
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            onclick="pasteFromClipboardBtn()"
+            title="Pegar imagen o URL del portapapeles (Ctrl+V)"
+          >
+            📋 Pegar
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            command="show-modal"
+            commandfor="help-dialog"
+            onclick="openHelpDialog()"
+          >
+            ❓ Cómo usar en WhatsApp
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            id="theme-toggle"
+            onclick="toggleTheme()"
+            aria-label="Cambiar tema claro u oscuro"
+          >
+            ☀️ Tema
+          </button>
+        </div>
+      </div>
     </header>
 
-    <!-- Input card -->
-    <div class="card">
-      <div class="card-header"><span class="dot"></span>fuente del emote</div>
-      <div class="card-body">
-        <div class="tabs">
-          <button class="tab-btn active" onclick="tab('url', this)">
-            🔗 Link 7TV
-          </button>
-          <button class="tab-btn" onclick="tab('search', this)">
-            🔍 Buscar emote
-          </button>
-          <button class="tab-btn" onclick="tab('file', this)">
-            📁 Subir archivo
-          </button>
+    <!-- Persistent Status Strip -->
+    <div class="status-strip">
+      <div class="status-pill" id="status-pill">
+        <div class="status-left">
+          <span class="dot" id="status-dot"></span>
+          <span id="status-text">Explora emotes en tendencia, pega un link de 7TV o arrastra tus imágenes.</span>
         </div>
-
-        <div id="tab-url">
-          <div class="input-row">
-            <input
-              type="text"
-              id="url-in"
-              placeholder="https://7tv.app/emotes/..."
-              onkeydown="if(event.key==='Enter')fromUrl()"
-            />
-            <button class="btn" onclick="fromUrl()">Cargar</button>
-          </div>
-          <p
-            style="font-size: 0.62rem; color: var(--muted); margin-top: 0.6rem"
-          >
-            Acepta link de página 7TV o URL directa de .png/.gif/.webp
-          </p>
-        </div>
-
-        <div id="tab-search" style="display: none">
-          <div class="input-row">
-            <input
-              type="text"
-              id="search-in"
-              placeholder="Nombre del emote... ej: KEKW, peepoHappy"
-              onkeydown="if(event.key==='Enter')searchEmotes()"
-            />
-            <button class="btn" onclick="searchEmotes()">Buscar</button>
-          </div>
-          <div id="search-results" style="
-            margin-top: 0.8rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            gap: 0.5rem;
-            max-height: 300px;
-            overflow-y: auto;
-          "></div>
-        </div>
-
-        <div id="tab-file" style="display: none">
-          <div id="dropzone">
-            <input
-              type="file"
-              id="file-in"
-              accept="image/*,.gif,.webp"
-              onchange="fromFile(event)"
-            />
-            <span class="icon">🖼️</span>
-            <span>Arrastra imagen o GIF aquí</span>
-            <span style="margin-top: 0.3rem; font-size: 0.73rem"
-              >o haz clic para seleccionar</span
-            >
-            <span class="hint">PNG · GIF animado · WEBP · JPG</span>
-          </div>
+        <div class="kbd-hint">
+          <span>Atajo global:</span> <kbd>Ctrl</kbd>+<kbd>V</kbd> <span>para pegar</span>
         </div>
       </div>
     </div>
 
-    <div id="status"></div>
-
-    <!-- CORS hint -->
-    <div class="cors-note" id="cors-note">
-      <b>⚠ Error de CORS</b> — El servidor de 7TV bloqueó la descarga directa
-      desde el navegador.<br />
-      <b>Solución rápida:</b> Ve a <b>7tv.app</b>, abre el emote, clic derecho
-      en la imagen → <em>"Guardar imagen como"</em> y súbela en la pestaña
-      <b>Subir archivo</b>.
-    </div>
-
-    <!-- Preview card -->
-    <div class="card" id="preview-card">
-      <div class="card-header">
-        <span
-          class="dot"
-          style="background: var(--green); box-shadow: 0 0 6px var(--green)"
-        ></span
-        >sticker listo
-      </div>
-      <div class="card-body">
-        <div class="preview-inner">
-          <div class="frame-wrap" id="frame">
-            <img id="prev-img" style="display: none" />
-            <canvas id="prev-canvas" style="display: none"></canvas>
-            <div class="frame-badge" id="frame-badge"></div>
-          </div>
-
-          <div class="meta" id="meta"></div>
-
-          <div class="actions">
-            <button class="btn ghost" onclick="reset()">↩ Nuevo</button>
-            <button class="btn" onclick="download()">⬇ Descargar</button>
-          </div>
-
-          <button
-            class="btn wa-btn"
-            id="share-btn"
-            onclick="shareToWA()"
-            style="display: none"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
-              />
-            </svg>
-            Compartir a WhatsApp
-          </button>
-
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- LEFT COLUMN: Explorer & Sources -->
+      <section class="card" aria-label="Explorador y fuentes de emotes">
+        <div class="tablist-bar">
           <div
-            id="share-fallback"
-            style="
-              display: none;
-              width: 100%;
-              font-size: 0.65rem;
-              color: var(--muted);
-              text-align: center;
-              line-height: 1.8;
-            "
+            class="tablist scroller"
+            id="source-tablist"
+            focusgroup="tablist nomemory"
+            role="tablist"
+            aria-label="Fuentes de emotes"
           >
-            📵 Web Share no disponible en este dispositivo.<br />
-            Descarga el archivo con ⬇ y ábrelo en tu celular → compartir → WhatsApp.
+            <button
+              type="button"
+              role="tab"
+              class="tab-item"
+              id="tab-explore"
+              aria-selected="true"
+              focusgroupstart
+              data-panel="panel-explore"
+            >
+              🔥 Explorar 7TV
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab-item"
+              id="tab-sets"
+              aria-selected="false"
+              data-panel="panel-sets"
+            >
+              📺 Canales / Sets
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab-item"
+              id="tab-url"
+              aria-selected="false"
+              data-panel="panel-url"
+            >
+              🔗 Link Directo
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab-item"
+              id="tab-upload"
+              aria-selected="false"
+              data-panel="panel-upload"
+            >
+              📁 Subir Archivos
+            </button>
+            <button
+              type="button"
+              role="tab"
+              class="tab-item"
+              id="tab-saved"
+              aria-selected="false"
+              data-panel="panel-saved"
+            >
+              ⭐ Guardados <span class="mono" id="fav-count-badge">(0)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="tabpanels-stack">
+          <!-- PANEL 1: EXPLORE & SEARCH -->
+          <div role="tabpanel" id="panel-explore" aria-labelledby="tab-explore">
+            <div class="panel-inner">
+              <form class="search-form" id="explore-form">
+                <label for="search-in" class="visually-hidden">Buscar emote en 7TV</label>
+                <input
+                  type="text"
+                  id="search-in"
+                  class="input-text"
+                  placeholder="Buscar emote en 7TV… ej: peepoHappy, KEKW, catJAM, Aware"
+                  autocomplete="off"
+                />
+                <button type="submit" class="btn">🔍 Buscar</button>
+              </form>
+
+              <div class="chips-row" aria-label="Búsquedas rápidas">
+                <button type="button" class="chip active" onclick="quickPreset('', this)">🔥 Top Popular</button>
+                <button type="button" class="chip" onclick="quickPreset('peepo', this)">🐸 Peepo</button>
+                <button type="button" class="chip" onclick="quickPreset('cat', this)">🐱 Gatos</button>
+                <button type="button" class="chip" onclick="quickPreset('KEKW', this)">😂 Risas</button>
+                <button type="button" class="chip" onclick="quickPreset('Aware', this)">💀 Aware</button>
+                <button type="button" class="chip" onclick="quickPreset('JAM', this)">🎵 JAM / Bailes</button>
+                <button type="button" class="chip" onclick="quickPreset('Love', this)">❤️ Love</button>
+              </div>
+
+              <div class="filter-bar">
+                <div class="filter-group">
+                  <label for="anim-filter" class="visually-hidden">Filtrar por tipo</label>
+                  <select id="anim-filter" class="select-input" onchange="runExploreSearch(true)">
+                    <option value="all">Todos los formatos</option>
+                    <option value="static">Solo estáticos (PNG/WEBP)</option>
+                    <option value="anim">Solo animados (GIF/WEBP)</option>
+                  </select>
+                  <label class="check-label" for="exact-check">
+                    <input type="checkbox" id="exact-check" onchange="runExploreSearch(true)" />
+                    <span>Exacto</span>
+                  </label>
+                  <label class="check-label" for="multiselect-mode">
+                    <input type="checkbox" id="multiselect-mode" />
+                    <span>Clic selecciona para Pack</span>
+                  </label>
+                </div>
+                <div class="filter-group">
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="selectAllVisible('explore-grid')">
+                    + Todos al Pack
+                  </button>
+                </div>
+              </div>
+
+              <div class="emote-grid custom-scroll" id="explore-grid"></div>
+
+              <div class="load-more-row">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  id="load-more-btn"
+                  onclick="loadMoreExplore()"
+                  style="display: none"
+                >
+                  ⬇ Cargar más emotes
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 2: CHANNELS & EMOTE SETS -->
+          <div role="tabpanel" id="panel-sets" aria-labelledby="tab-sets" hidden="until-found">
+            <div class="panel-inner">
+              <form class="search-form" id="sets-form">
+                <label for="set-in" class="visually-hidden">Canal de Twitch o link de Emote Set</label>
+                <input
+                  type="text"
+                  id="set-in"
+                  class="input-text"
+                  placeholder="Streamer (ej: ibai, illojuan, rubius, xqc) o link 7tv.app/emote-sets/..."
+                  autocomplete="off"
+                />
+                <button type="submit" class="btn">📺 Cargar</button>
+                <button type="button" class="btn btn-ghost" onclick="loadGlobalSet()">
+                  🌐 Globales
+                </button>
+              </form>
+
+              <div class="channel-list" id="channel-matches"></div>
+
+              <div class="filter-bar" id="set-Controls" style="display: none">
+                <div class="filter-group" style="flex: 1">
+                  <span class="mono" id="set-title-label" style="font-size: 0.76rem; color: var(--accent)"></span>
+                  <label for="set-filter-in" class="visually-hidden">Filtrar dentro del set</label>
+                  <input
+                    type="text"
+                    id="set-filter-in"
+                    class="input-text"
+                    style="padding: 0.38rem 0.65rem; font-size: 0.76rem; max-width: 210px"
+                    placeholder="Filtrar en este set…"
+                    oninput="filterLoadedSet()"
+                  />
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="selectAllVisible('set-grid')">
+                  + Añadir filtrados al Pack
+                </button>
+              </div>
+
+              <div class="emote-grid custom-scroll" id="set-grid">
+                <div class="empty-state" style="grid-column: 1 / -1">
+                  Escribe el nombre de tu streamer favorito o pega un link de Emote Set para explorar todos sus emotes de golpe.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 3: DIRECT URL -->
+          <div role="tabpanel" id="panel-url" aria-labelledby="tab-url" hidden="until-found">
+            <div class="panel-inner">
+              <form class="search-form" id="url-form">
+                <label for="url-in" class="visually-hidden">URL del emote o imagen</label>
+                <input
+                  type="text"
+                  id="url-in"
+                  class="input-text"
+                  placeholder="https://7tv.app/emotes/... o URL directa .webp / .gif / .png"
+                  autocomplete="off"
+                />
+                <button type="submit" class="btn">⚡ Importar</button>
+              </form>
+              <p style="font-size: 0.78rem; color: var(--text-soft); margin-top: 0.75rem">
+                Acepta enlaces de emotes individuales de <b>7tv.app</b>, links directos del CDN o cualquier imagen pública. También puedes presionar <kbd>Ctrl</kbd>+<kbd>V</kbd> en cualquier momento.
+              </p>
+
+              <div
+                id="cors-note"
+                style="
+                  display: none;
+                  margin-top: 1rem;
+                  padding: 0.85rem;
+                  border-radius: var(--radius-md);
+                  border: 1px solid var(--yellow);
+                  background: rgba(255, 216, 59, 0.08);
+                  font-size: 0.78rem;
+                  color: var(--text);
+                "
+              >
+                <strong style="color: var(--yellow)">⚠ Bloqueo CORS detectado en el servidor remoto</strong>
+                <p style="margin-top: 0.25rem; color: var(--text-soft)">
+                  Abre la imagen en otra pestaña, cópiala (<kbd>Ctrl</kbd>+<kbd>C</kbd>) y pégala aquí con <kbd>Ctrl</kbd>+<kbd>V</kbd>, o súbela desde la pestaña <b>Subir Archivos</b>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 4: FILE UPLOAD -->
+          <div role="tabpanel" id="panel-upload" aria-labelledby="tab-upload" hidden="until-found">
+            <div class="panel-inner">
+              <div class="dropzone" id="dropzone">
+                <label for="file-in" class="visually-hidden">Seleccionar imágenes o GIFs</label>
+                <input
+                  type="file"
+                  id="file-in"
+                  accept="image/*,.gif,.webp,.avif"
+                  multiple
+                />
+                <div style="font-size: 2.2rem; margin-bottom: 0.4rem">🖼️</div>
+                <div style="font-weight: 600; color: var(--text); font-size: 0.92rem">
+                  Arrastra una o varias imágenes / GIFs aquí
+                </div>
+                <div style="font-size: 0.78rem; margin-top: 0.25rem">
+                  o haz clic para explorar en tu dispositivo
+                </div>
+                <div class="mono" style="font-size: 0.68rem; color: var(--muted); margin-top: 0.6rem">
+                  PNG · WEBP · GIF animado · JPG · AVIF (Subida múltiple soportada)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 5: FAVORITES & RECENTS -->
+          <div role="tabpanel" id="panel-saved" aria-labelledby="tab-saved" hidden="until-found">
+            <div class="panel-inner">
+              <div class="control-header" style="margin-bottom: 0.4rem">
+                <span>⭐ Tus Favoritos</span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="clearSaved('favs')">
+                  Limpiar favoritos
+                </button>
+              </div>
+              <div class="emote-grid custom-scroll" id="favs-grid" style="max-height: 230px"></div>
+
+              <div class="control-header" style="margin: 1.1rem 0 0.4rem">
+                <span>🕒 Abiertos recientemente</span>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="clearSaved('recent')">
+                  Borrar historial
+                </button>
+              </div>
+              <div class="emote-grid custom-scroll" id="recent-grid" style="max-height: 210px"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: Sticker Studio 512x512 -->
+      <aside class="card studio-sticky" aria-label="Sticker Studio y exportación">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="dot" style="background: var(--green)"></span>
+            <span>Sticker Studio · 512×512</span>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="resetStudioAdjustments()">
+            ↺ Reset Ajustes
+          </button>
+        </div>
+
+        <div class="studio-body">
+          <!-- Background preview selector -->
+          <div class="bg-Subtabs">
+            <span style="font-size: 0.73rem; color: var(--text-soft)">Simular chat:</span>
+            <div class="bg-pills" role="group" aria-label="Fondo de vista previa">
+              <button type="button" class="bg-pill active" onclick="setStageBg('checker', this)">🏁 Transp.</button>
+              <button type="button" class="bg-pill" onclick="setStageBg('wa-dark', this)">💬 WA Oscuro</button>
+              <button type="button" class="bg-pill" onclick="setStageBg('wa-light', this)">☀️ WA Claro</button>
+              <button type="button" class="bg-pill" onclick="setStageBg('discord', this)">🎮 Discord</button>
+            </div>
+          </div>
+
+          <!-- Stage -->
+          <div class="stage-outer" id="stage-outer" data-bg="checker">
+            <div class="chat-mockup">
+              <div class="frame-box">
+                <canvas id="studio-canvas" width="512" height="512"></canvas>
+                <img id="studio-anim-img" alt="Vista previa animada" style="display: none" />
+              </div>
+              <div class="chat-time-pill">10:42 p. m. ✓✓</div>
+            </div>
+
+            <div class="stage-badges">
+              <span class="stage-badge" id="badge-dims">512 × 512 px</span>
+              <span class="stage-badge ok" id="badge-size">Listo</span>
+            </div>
+          </div>
+
+          <!-- Animated toggle notice -->
+          <div class="anim-banner" id="anim-banner">
+            <span id="anim-banner-text">🎞️ Emote animado detectado</span>
+            <button type="button" class="btn btn-ghost btn-sm" id="toggle-anim-edit-btn" onclick="toggleAnimEditMode()">
+              Editar como estático
+            </button>
+          </div>
+
+          <!-- File name + add to pack -->
+          <div class="control-row">
+            <label for="fname-in" class="visually-hidden">Nombre del archivo del sticker</label>
+            <input
+              type="text"
+              id="fname-in"
+              class="input-text mono"
+              value="sticker"
+              placeholder="Nombre del sticker"
+              oninput="state.fname = this.value.trim() || 'sticker'"
+            />
+            <button
+              type="button"
+              class="btn btn-ghost"
+              id="studio-pack-btn"
+              onclick="addCurrentStudioToPack()"
+              title="Añadir este emote al Pack ZIP"
+            >
+              ➕ Al Pack
+            </button>
+          </div>
+
+          <!-- Primary Export Actions -->
+          <div class="export-actions">
+            <button type="button" class="btn btn-green" onclick="copyStickerToClipboard()">
+              📋 Copiar Imagen
+            </button>
+            <button type="button" class="btn" onclick="downloadCurrentSticker()">
+              ⬇ Descargar
+            </button>
+            <button
+              type="button"
+              class="btn btn-wa btn-full"
+              id="share-wa-btn"
+              onclick="shareCurrentToWA()"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+                />
+              </svg>
+              <span id="share-wa-label">Compartir Sticker a WhatsApp</span>
+            </button>
+          </div>
+
+          <!-- Studio Editing Controls -->
+          <div class="controls-grid" id="studio-controls">
+            <!-- 1. Fit & Transform -->
+            <div class="control-box">
+              <div class="control-header">
+                <span>📐 Encuadre y Transformación</span>
+                <div style="display: flex; gap: 0.25rem">
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="flipStudio('h')" title="Voltear horizontalmente">↔</button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="flipStudio('v')" title="Voltear verticalmente">↕</button>
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="rotateStudio(90)" title="Rotar 90°">⟳ 90°</button>
+                </div>
+              </div>
+
+              <div class="seg-group" role="group" aria-label="Modo de ajuste">
+                <button type="button" class="seg-btn active" data-fit="contain" onclick="setFitMode('contain', this)">
+                  Proporcional
+                </button>
+                <button type="button" class="seg-btn" data-fit="stretch" onclick="setFitMode('stretch', this)">
+                  Expandir (Wide)
+                </button>
+                <button type="button" class="seg-btn" data-fit="cover" onclick="setFitMode('cover', this)">
+                  Rellenar
+                </button>
+              </div>
+
+              <div class="slider-field">
+                <div class="slider-label-row">
+                  <label for="scale-slider">Tamaño en lienzo</label>
+                  <span class="mono" id="scale-val">96%</span>
+                </div>
+                <input
+                  type="range"
+                  id="scale-slider"
+                  min="50"
+                  max="115"
+                  step="1"
+                  value="96"
+                  aria-valuetext="96 por ciento"
+                />
+              </div>
+            </div>
+
+            <!-- 2. Border / Outline & Shadow -->
+            <div class="control-box">
+              <div class="control-header">
+                <span>✨ Contorno y Sombra (Opcional)</span>
+                <span class="mono" style="font-size: 0.68rem; color: var(--muted)">0px = Sin borde</span>
+              </div>
+
+              <div class="control-row">
+                <div class="slider-field" style="flex: 1">
+                  <div class="slider-label-row">
+                    <label for="outline-slider">Grosor de contorno</label>
+                    <span class="mono" id="outline-val">0 px</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="outline-slider"
+                    min="0"
+                    max="18"
+                    step="1"
+                    value="0"
+                    aria-valuetext="0 píxeles"
+                  />
+                </div>
+                <div>
+                  <label for="outline-color" class="visually-hidden">Color del contorno</label>
+                  <input
+                    type="color"
+                    id="outline-color"
+                    class="color-swatch"
+                    value="#ffffff"
+                    oninput="renderStudio()"
+                  />
+                </div>
+              </div>
+
+              <div class="slider-field">
+                <div class="slider-label-row">
+                  <label for="shadow-slider">Sombra suave</label>
+                  <span class="mono" id="shadow-val">0 px</span>
+                </div>
+                <input
+                  type="range"
+                  id="shadow-slider"
+                  min="0"
+                  max="24"
+                  step="1"
+                  value="0"
+                  aria-valuetext="0 píxeles"
+                />
+              </div>
+            </div>
+
+            <!-- 3. Meme Text Overlay -->
+            <div class="control-box">
+              <div class="control-header">
+                <span>💬 Texto Meme / Leyenda</span>
+                <div>
+                  <label for="text-color" class="visually-hidden">Color del texto</label>
+                  <input
+                    type="color"
+                    id="text-color"
+                    class="color-swatch"
+                    value="#ffffff"
+                    style="width: 26px; height: 26px"
+                    oninput="renderStudio()"
+                  />
+                </div>
+              </div>
+              <div class="control-row">
+                <label for="caption-top" class="visually-hidden">Texto superior</label>
+                <input
+                  type="text"
+                  id="caption-top"
+                  class="input-text"
+                  placeholder="TEXTO SUPERIOR"
+                  oninput="renderStudio()"
+                />
+                <label for="caption-bottom" class="visually-hidden">Texto inferior</label>
+                <input
+                  type="text"
+                  id="caption-bottom"
+                  class="input-text"
+                  placeholder="TEXTO INFERIOR"
+                  oninput="renderStudio()"
+                />
+              </div>
+              <div class="slider-field">
+                <div class="slider-label-row">
+                  <label for="font-slider">Tamaño de letra</label>
+                  <span class="mono" id="font-val">54 px</span>
+                </div>
+                <input
+                  type="range"
+                  id="font-slider"
+                  min="28"
+                  max="92"
+                  step="2"
+                  value="54"
+                  aria-valuetext="54 píxeles"
+                />
+              </div>
+            </div>
+
+            <!-- 4. Output Format & Quality -->
+            <div class="control-box">
+              <div class="control-header">
+                <label for="export-format">📦 Formato de Descarga</label>
+              </div>
+              <select id="export-format" class="select-input" style="width: 100%" onchange="renderStudio()">
+                <option value="image/webp">WEBP 512×512 (Ideal WhatsApp sin fondo)</option>
+                <option value="image/png">PNG 512×512 (Ideal Discord / Máxima nitidez)</option>
+              </select>
+              <div class="slider-field" id="quality-field">
+                <div class="slider-label-row">
+                  <label for="quality-slider">Calidad WEBP</label>
+                  <span class="mono" id="quality-val">92%</span>
+                </div>
+                <input
+                  type="range"
+                  id="quality-slider"
+                  min="50"
+                  max="100"
+                  step="2"
+                  value="92"
+                  aria-valuetext="92 por ciento"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Floating Pack / Batch Queue Dock -->
+    <section class="pack-dock" id="pack-dock" aria-label="Creador de pack de stickers">
+      <div class="pack-dock-inner">
+        <div class="pack-top-row">
+          <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap">
+            <strong style="font-size: 0.86rem">
+              📦 Pack en cola: <span class="mono" style="color: var(--green)" id="pack-count">0</span>
+            </strong>
+            <span style="font-size: 0.74rem; color: var(--text-soft)" id="pack-hint-label">
+              (WhatsApp recomienda entre 3 y 30 por pack)
+            </span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap">
+            <label class="check-label" for="batch-apply-studio">
+              <input type="checkbox" id="batch-apply-studio" checked />
+              <span>Aplicar encuadre/borde del Studio</span>
+            </label>
+            <label for="zip-format-select" class="visually-hidden">Formato del ZIP</label>
+            <select id="zip-format-select" class="select-input">
+              <option value="webp-all">ZIP: Estáticos WEBP 512 + Animados WEBP/GIF</option>
+              <option value="png-gif">ZIP: Estáticos PNG 512 + Animados GIF</option>
+              <option value="webp-static">ZIP: Convertir todos a WEBP 512 estático</option>
+            </select>
+            <button type="button" class="btn btn-danger btn-sm" onclick="clearPack()">🗑 Vaciar</button>
+            <button type="button" class="btn btn-green btn-sm" id="zip-btn" onclick="downloadPackZip()">
+              📦 Descargar Pack (.ZIP)
+            </button>
+            <button
+              type="button"
+              class="btn btn-wa btn-sm"
+              id="share-pack-btn"
+              onclick="sharePackSequentially()"
+              style="display: none"
+            >
+              📲 Enviar uno por uno a WA
+            </button>
+          </div>
+        </div>
+
+        <div class="pack-strip custom-scroll" id="pack-strip"></div>
+        <div class="pack-progress" id="pack-progress">
+          <div class="pack-progress-fill" id="pack-progress-fill"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WhatsApp Instructions Modal Dialog (modern-web-guidance: dialog + light-dismiss-a-dialog) -->
+    <dialog id="help-dialog" closedby="any" aria-labelledby="help-dialog-title">
+      <div class="dialog-inner">
+        <div class="dialog-head">
+          <h1 id="help-dialog-title">✨ Cómo pasar tus stickers a WhatsApp sin borde blanco</h1>
+          <form method="dialog">
+            <button type="submit" class="btn btn-ghost btn-sm" autofocus aria-label="Cerrar guía">✕ Cerrar</button>
+          </form>
+        </div>
+
+        <div class="guide-steps">
+          <div class="guide-item">
+            <strong>📱 Desde Android / iPhone (Directo)</strong>
+            Pulsa el botón verde <b>Compartir Sticker a WhatsApp</b>. Al enviarse como archivo <code>WEBP 512×512</code> con canal alfa, WhatsApp conserva la transparencia exacta sin recortar ni añadir bordes blancos.
+          </div>
+          <div class="guide-item">
+            <strong>💻 Desde PC (WhatsApp Web / Escritorio / Discord)</strong>
+            Haz clic en <b>📋 Copiar Imagen</b> y presiona <kbd>Ctrl</kbd>+<kbd>V</kbd> directamente en el chat, o descarga el archivo <code>.webp</code> y arrástralo dentro de la conversación usando la opción de crear sticker de WhatsApp Web.
+          </div>
+          <div class="guide-item">
+            <strong>📦 Crear un Pack Completo (3 a 30 stickers)</strong>
+            Pulsa el botón <b>+</b> en la esquina superior derecha de todos los emotes que quieras, descárgalos en un solo <b>.ZIP</b> e impórtalos en tu app de paquetes de stickers favorita (como <em>Sticker Maker</em>) o en Telegram/Discord.
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
 
-    <!-- Selected emotes queue -->
-    <div class="card" id="queue-card">
-      <div class="card-header">
-        <span class="dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></span>
-        emotes seleccionados · <span id="queue-count">0</span>
-      </div>
-      <div class="card-body">
-        <div class="queue-grid" id="queue-grid"></div>
-        <div class="progress-wrap" id="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
-        <div class="queue-actions">
-          <button class="btn ghost" onclick="clearQueue()">🗑 Limpiar</button>
-          <button class="btn green" onclick="downloadAllZip()">📦 Descargar ZIP</button>
-          <button class="btn wa-btn" id="share-all-btn" onclick="shareAllToWA()" style="display:none">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            Enviar stickers a WhatsApp (uno por uno)
-          </button>
-        </div>
-        <div class="share-hint" id="share-hint" style="display:none">
-          💡 En móvil: cada sticker se comparte como <b>WEBP 512×512</b> para que WhatsApp lo agregue <b>sin contorno blanco</b>.
-        </div>
-      </div>
-    </div>
+    <!-- Toast Region + Screen Reader Announcer Fallback -->
+    <div id="toast-region" role="region" aria-label="Notificaciones"></div>
+    <p class="visually-hidden">Avisos del sistema</p>
+    <div id="sr-announcer" class="visually-hidden" aria-live="polite"></div>
 
-    <!-- Steps -->
-    <div class="steps">
-      <div class="step">
-        <div class="step-n">01</div>
-        Busca emotes o pega el link de 7TV
-      </div>
-      <div class="step">
-        <div class="step-n">02</div>
-        Selecciona emotes (PNG o GIF animado)
-      </div>
-      <div class="step">
-        <div class="step-n">03</div>
-        Descarga ZIP o comparte a WhatsApp ✨
-      </div>
-    </div>
-
-    <footer>100% en tu navegador · sin servidores · sin cookies</footer>
+    <footer>
+      7TV Sticker Studio · Procesamiento 100% local en tu navegador · Sin servidores ni marcas de agua
+    </footer>
 
     <script>
-      // ── State ────────────────────────────────────────────────────────────────────
-      let blob = null,
-        fname = "sticker",
-        animated = false;
-
-      // Multi-select queue: [{id, name, thumbUrl, emoteData}]
-      const selectedQueue = [];
-
-      // ── Tabs ─────────────────────────────────────────────────────────────────────
-      function tab(id, el) {
-        document.getElementById("tab-url").style.display = id === "url" ? "" : "none";
-        document.getElementById("tab-search").style.display = id === "search" ? "" : "none";
-        document.getElementById("tab-file").style.display = id === "file" ? "" : "none";
-        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-        el.classList.add("active");
+      // ── Progressive Polyfills (feature-detected per modern-web-guidance) ─────────
+      if (!Object.hasOwn(HTMLElement.prototype, "popover")) {
+        import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js").catch(() => {});
+      }
+      if (!Object.hasOwn(HTMLElement.prototype, "focusGroup")) {
+        import("https://cdn.jsdelivr.net/npm/@microsoft/focusgroup-polyfill/+esm")
+          .then((m) => m.polyfill && m.polyfill())
+          .catch(() => {});
       }
 
-      // ── Search emotes by name ──────────────────────────────────────────────────────
-      let lastSearchItems = [];
-      async function searchEmotes() {
-        const q = document.getElementById("search-in").value.trim();
-        if (!q) { st("Escribe un nombre de emote.", "err"); return; }
-        st("⟳ Buscando emotes...", "run");
-        const results = document.getElementById("search-results");
-        results.innerHTML = "";
+      // Dialog light-dismiss fallback where `closedBy` is unsupported
+      const helpDialog = document.getElementById("help-dialog");
+      if (!("closedBy" in HTMLDialogElement.prototype)) {
+        helpDialog.addEventListener("click", (event) => {
+          if (event.target !== helpDialog) return;
+          const rect = helpDialog.getBoundingClientRect();
+          const isDialogContent =
+            rect.top <= event.clientY &&
+            event.clientY <= rect.top + rect.height &&
+            rect.left <= event.clientX &&
+            event.clientX <= rect.left + rect.width;
+          if (!isDialogContent) helpDialog.close();
+        });
+      }
+
+      function openHelpDialog() {
+        if (!helpDialog.open) helpDialog.showModal();
+      }
+
+      // ── Application State ────────────────────────────────────────────────────────
+      const state = {
+        activeId: null,
+        fname: "sticker",
+        rawBuffer: null,
+        sourceImage: null,
+        isSourceAnimated: false,
+        editAnimatedAsStatic: false,
+        animMime: "image/webp",
+        animObjectUrl: null,
+        outputBlob: null,
+        fitMode: "contain",
+        flipH: 1,
+        flipV: 1,
+        rotation: 0,
+        currentEmoteMeta: null,
+        exploreQuery: "",
+        explorePage: 1,
+        exploreItems: [],
+        loadedSetItems: [],
+        packQueue: [],
+        favorites: loadStorage("7tv_studio_favs", []),
+        recents: loadStorage("7tv_studio_recents", []),
+      };
+
+      function loadStorage(key, fallback) {
         try {
-          const res = await fetch(`https://7tv.io/v3/gql`, {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch {
+          return fallback;
+        }
+      }
+
+      function saveStorage(key, val) {
+        try {
+          localStorage.setItem(key, JSON.stringify(val));
+        } catch {}
+      }
+
+      // ── Theme Toggle ─────────────────────────────────────────────────────────────
+      function initTheme() {
+        const saved = localStorage.getItem("7tv_studio_theme");
+        const prefersLight =
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+        const theme = saved || (prefersLight ? "light" : "dark");
+        applyTheme(theme);
+      }
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        const btn = document.getElementById("theme-toggle");
+        btn.textContent = theme === "dark" ? "☀️ Claro" : "🌙 Oscuro";
+        try {
+          localStorage.setItem("7tv_studio_theme", theme);
+        } catch {}
+      }
+
+      function toggleTheme() {
+        const cur = document.documentElement.getAttribute("data-theme") || "dark";
+        applyTheme(cur === "dark" ? "light" : "dark");
+      }
+      initTheme();
+
+      // ── Status & Accessible Toast Notifications ──────────────────────────────────
+      function setStatus(msg, type = "") {
+        const pill = document.getElementById("status-pill");
+        const text = document.getElementById("status-text");
+        pill.className = "status-pill" + (type ? " " + type : "");
+        text.textContent = msg;
+      }
+
+      const activeToasts = [];
+      function showToast(message, type = "ok") {
+        setStatus(message, type);
+
+        // Suppress background toast while modal dialog is open (persistent-toast-notifications)
+        if (document.querySelector("dialog:modal")) return;
+
+        // Announce via ariaNotify or live-region fallback
+        if (typeof document.ariaNotify === "function") {
+          document.ariaNotify(message);
+        } else {
+          const sr = document.getElementById("sr-announcer");
+          sr.textContent = "";
+          requestAnimationFrame(() => {
+            sr.textContent = message;
+          });
+        }
+
+        const region = document.getElementById("toast-region");
+        const toast = document.createElement("div");
+        toast.className = "toast-item";
+        toast.setAttribute("popover", "manual");
+
+        const span = document.createElement("span");
+        span.textContent = message;
+
+        const closeBtn = document.createElement("button");
+        closeBtn.type = "button";
+        closeBtn.className = "btn btn-ghost btn-sm";
+        closeBtn.textContent = "✕";
+        closeBtn.setAttribute("aria-label", "Cerrar notificación");
+
+        const dismiss = (manualFocus = false) => {
+          const idx = activeToasts.indexOf(toast);
+          if (idx >= 0) activeToasts.splice(idx, 1);
+          if (manualFocus) {
+            const next = activeToasts[idx] || activeToasts[idx - 1];
+            if (next) next.querySelector("button")?.focus();
+          }
+          try {
+            if (typeof toast.hidePopover === "function") toast.hidePopover();
+          } catch {}
+          toast.remove();
+          repositionToasts();
+        };
+
+        closeBtn.addEventListener("click", () => dismiss(true));
+        toast.append(span, closeBtn);
+        region.appendChild(toast);
+
+        try {
+          if (typeof toast.showPopover === "function") {
+            toast.showPopover();
+          } else {
+            toast.classList.add(":popover-open");
+          }
+        } catch {
+          toast.classList.add(":popover-open");
+        }
+
+        activeToasts.push(toast);
+        repositionToasts();
+
+        const scheduleHide = () => {
+          setTimeout(() => {
+            if (!toast.isConnected) return;
+            if (toast.matches(":focus-within")) {
+              toast.addEventListener("focusout", scheduleHide, { once: true });
+              return;
+            }
+            dismiss(false);
+          }, 3600);
+        };
+        scheduleHide();
+      }
+
+      function repositionToasts() {
+        let offset = 20;
+        for (let i = activeToasts.length - 1; i >= 0; i--) {
+          const t = activeToasts[i];
+          t.style.bottom = offset + "px";
+          offset += (t.offsetHeight || 52) + 10;
+        }
+      }
+
+      // ── Tabs Setup (modern-web-guidance: tabs) ───────────────────────────────────
+      const tablist = document.getElementById("source-tablist");
+      const tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+      const panels = tabs.map((t) => document.getElementById(t.dataset.panel));
+
+      function selectTab(selectedTab, moveFocus = false) {
+        for (const tab of tabs) {
+          const isSel = tab === selectedTab;
+          tab.setAttribute("aria-selected", String(isSel));
+          tab.toggleAttribute("focusgroupstart", isSel);
+          if (!Object.hasOwn(HTMLElement.prototype, "focusGroup")) {
+            tab.tabIndex = isSel ? 0 : -1;
+          }
+          const panel = document.getElementById(tab.dataset.panel);
+          if (isSel) {
+            panel.hidden = false;
+          } else {
+            panel.setAttribute("hidden", "until-found");
+          }
+        }
+        if (moveFocus) selectedTab.focus();
+        selectedTab.scrollIntoView({
+          block: "nearest",
+          inline: "nearest",
+          container: "nearest",
+        });
+      }
+
+      tabs.forEach((tab, index) => {
+        if (!Object.hasOwn(HTMLElement.prototype, "focusGroup")) {
+          tab.tabIndex = index === 0 ? 0 : -1;
+        }
+        tab.addEventListener("click", () => selectTab(tab, false));
+        tab.addEventListener("focus", () => {
+          // Selection follows focus
+          if (tab.getAttribute("aria-selected") !== "true") {
+            selectTab(tab, false);
+          }
+        });
+        // Keyboard arrow fallback when native focusgroup isn't active
+        tab.addEventListener("keydown", (e) => {
+          if (Object.hasOwn(HTMLElement.prototype, "focusGroup")) return;
+          let nextIdx = -1;
+          if (e.key === "ArrowRight") nextIdx = (index + 1) % tabs.length;
+          else if (e.key === "ArrowLeft") nextIdx = (index - 1 + tabs.length) % tabs.length;
+          else if (e.key === "Home") nextIdx = 0;
+          else if (e.key === "End") nextIdx = tabs.length - 1;
+          if (nextIdx >= 0) {
+            e.preventDefault();
+            selectTab(tabs[nextIdx], true);
+          }
+        });
+      });
+
+      // Sync selection when find-in-page reveals a hidden="until-found" panel
+      panels.forEach((panel, i) => {
+        panel.addEventListener("beforematch", () => selectTab(tabs[i], false));
+      });
+
+      // Scroll-driven animation edge fade fallback using IntersectionObserver
+      if (!CSS.supports("animation-timeline", "scroll()")) {
+        const [first, last] = [tablist.firstElementChild, tablist.lastElementChild];
+        if (first && last) {
+          const io = new IntersectionObserver(
+            (entries) => {
+              for (const { target, intersectionRatio } of entries) {
+                tablist.classList.toggle(
+                  target === first ? "more-start" : "more-end",
+                  intersectionRatio < 1
+                );
+              }
+            },
+            { root: tablist, threshold: 1, rootMargin: "1px" }
+          );
+          io.observe(first);
+          io.observe(last);
+        }
+      }
+
+      // ── Sliders Sync (modern-web-guidance: slider) ───────────────────────────────
+      function bindSlider(id, labelId, unit, onUpdate) {
+        const slider = document.getElementById(id);
+        const label = document.getElementById(labelId);
+        const sync = () => {
+          slider.style.setProperty("--attr-min", slider.min || 0);
+          slider.style.setProperty("--attr-max", slider.max || 100);
+          slider.style.setProperty("--control-value", slider.value);
+          if (label) label.textContent = `${slider.value}${unit}`;
+          slider.setAttribute("aria-valuetext", `${slider.value} ${unit.trim()}`);
+        };
+        sync();
+        slider.addEventListener("input", () => {
+          sync();
+          if (onUpdate) onUpdate();
+        });
+        return sync;
+      }
+
+      const syncAllSliders = [
+        bindSlider("scale-slider", "scale-val", "%", () => renderStudio()),
+        bindSlider("outline-slider", "outline-val", " px", () => renderStudio()),
+        bindSlider("shadow-slider", "shadow-val", " px", () => renderStudio()),
+        bindSlider("font-slider", "font-val", " px", () => renderStudio()),
+        bindSlider("quality-slider", "quality-val", "%", () => renderStudio()),
+      ];
+
+      // ── IME-Safe Form Submissions (modern-web-guidance: ime-safe-enter-submit) ───
+      function attachImeSafeEnter(inputEl, formEl) {
+        inputEl.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            if (event.isComposing || event.keyCode === 229) return;
+            formEl.requestSubmit();
+          }
+        });
+      }
+
+      const exploreForm = document.getElementById("explore-form");
+      attachImeSafeEnter(document.getElementById("search-in"), exploreForm);
+      exploreForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        document.querySelectorAll(".chips-row .chip").forEach((c) => c.classList.remove("active"));
+        state.exploreQuery = document.getElementById("search-in").value.trim();
+        runExploreSearch(true);
+      });
+
+      const setsForm = document.getElementById("sets-form");
+      attachImeSafeEnter(document.getElementById("set-in"), setsForm);
+      setsForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        handleSetsSearchOrUrl();
+      });
+
+      const urlForm = document.getElementById("url-form");
+      attachImeSafeEnter(document.getElementById("url-in"), urlForm);
+      urlForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        fromUrlInput();
+      });
+
+      // ── Normalize 7TV Emote Object ───────────────────────────────────────────────
+      function normalizeEmote(raw) {
+        const core = raw.data ? raw.data : raw;
+        const id = core.id || raw.id;
+        const name = raw.name || core.name || "emote";
+        const base = core.host?.url || "";
+        const urlBase = base.startsWith("//") ? "https:" + base : base;
+        const files = core.host?.files || [];
+        const isAnim =
+          Boolean(core.animated) ||
+          files.some((f) => f.format === "GIF" || (f.static_name && f.static_name !== f.name));
+        const thumbFile =
+          files.find((f) => f.name === "2x.webp") ||
+          files.find((f) => f.name.includes("2x") && f.format === "WEBP") ||
+          files.find((f) => f.format === "WEBP") ||
+          files[0];
+        const thumbUrl = thumbFile ? `${urlBase}/${thumbFile.name}` : "";
+        return {
+          id,
+          name,
+          animated: isAnim,
+          thumbUrl,
+          host: { url: urlBase, files },
+        };
+      }
+
+      // ── 7TV Explore & Search ─────────────────────────────────────────────────────
+      function quickPreset(query, chipBtn) {
+        document.querySelectorAll(".chips-row .chip").forEach((c) => c.classList.remove("active"));
+        if (chipBtn) chipBtn.classList.add("active");
+        document.getElementById("search-in").value = query;
+        state.exploreQuery = query;
+        runExploreSearch(true);
+      }
+
+      async function runExploreSearch(resetPage = true) {
+        if (resetPage) {
+          state.explorePage = 1;
+          state.exploreItems = [];
+        }
+        const q = state.exploreQuery;
+        const exact = document.getElementById("exact-check").checked;
+        const animMode = document.getElementById("anim-filter").value;
+        const limit = 24;
+
+        setStatus(
+          q ? `⟳ Buscando "${q}" en 7TV…` : "⟳ Cargando emotes populares de 7TV…",
+          "run"
+        );
+
+        let fetched = [];
+        try {
+          // Primary GQL query with pagination, popularity sort & animated metadata
+          const filterObj = {
+            case_sensitive: false,
+            exact_match: exact,
+            ignore_tags: false,
+          };
+          if (animMode === "anim") filterObj.animated = true;
+          if (animMode === "static") filterObj.animated = false;
+
+          const gqlRes = await fetch("https://7tv.io/v3/gql", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              query: `query($q:String!){emotes(query:$q,limit:20,filter:{case_sensitive:false,exact_match:false,ignore_tags:false}){items{id name host{url files{name format width height}}}}}`,
-              variables: { q }
-            })
+              query: `query($q:String!,$page:Int,$limit:Int,$filter:EmoteSearchFilter){
+                emotes(query:$q,page:$page,limit:$limit,sort:{value:"popularity",order:DESCENDING},filter:$filter){
+                  items{id name animated host{url files{name static_name format width height}}}
+                }
+              }`,
+              variables: { q, page: state.explorePage, limit, filter: filterObj },
+            }),
           });
-          const data = await res.json();
-          const items = data?.data?.emotes?.items || [];
-          lastSearchItems = items;
-          if (!items.length) { st("No se encontraron emotes.", "err"); return; }
-          st(`${items.length} emotes — clic para seleccionar`, "ok");
-          renderSearchResults(items);
-        } catch (e) {
-          st("Error buscando: " + e.message, "err");
-        }
-      }
-
-      function renderSearchResults(items) {
-        const results = document.getElementById("search-results");
-        results.innerHTML = "";
-        items.forEach(em => {
-          const base = em.host?.url || "";
-          const urlBase = base.startsWith("//") ? "https:" + base : base;
-          const thumbFile = em.host?.files?.find(f => f.name.includes("2x") && f.format === "WEBP") || em.host?.files?.[0];
-          const thumbUrl = thumbFile ? urlBase + "/" + thumbFile.name : "";
-          const isSelected = selectedQueue.some(s => s.id === em.id);
-          const div = document.createElement("div");
-          div.className = "emote-card" + (isSelected ? " selected" : "");
-          div.dataset.emoteId = em.id;
-          div.innerHTML = `<div class="check">${isSelected ? "✓" : ""}</div><img src="${thumbUrl}" alt="${em.name}" style="width:56px;height:56px;object-fit:contain;display:block;margin:0 auto 0.3rem;"><span style='font-size:0.58rem;color:var(--muted);word-break:break-all;'>${em.name}</span>`;
-          div.onclick = () => toggleSelectEmote(em, thumbUrl, div);
-          results.appendChild(div);
-        });
-      }
-
-      // ── Toggle select emote ──────────────────────────────────────────────────────
-      function toggleSelectEmote(em, thumbUrl, div) {
-        const idx = selectedQueue.findIndex(s => s.id === em.id);
-        if (idx >= 0) {
-          selectedQueue.splice(idx, 1);
-          div.classList.remove("selected");
-          div.querySelector(".check").textContent = "";
-        } else {
-          selectedQueue.push({ id: em.id, name: em.name, thumbUrl, emoteData: em });
-          div.classList.add("selected");
-          div.querySelector(".check").textContent = "✓";
-          if (selectedQueue.length > 30) {
-            st(`⚠ ${selectedQueue.length} emotes seleccionados — puede tardar`, "err");
+          const payload = await gqlRes.json();
+          if (payload?.data?.emotes?.items) {
+            fetched = payload.data.emotes.items;
+          } else {
+            // Fallback query compatible with strict minimal v3 schema
+            const fbRes = await fetch("https://7tv.io/v3/gql", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                query: `query($q:String!,$page:Int){emotes(query:$q,page:$page,limit:24,filter:{case_sensitive:false,exact_match:${exact},ignore_tags:false}){items{id name animated host{url files{name format width height}}}}}`,
+                variables: { q: q || "peepo", page: state.explorePage },
+              }),
+            });
+            const fbData = await fbRes.json();
+            fetched = fbData?.data?.emotes?.items || [];
           }
-        }
-        updateQueueUI();
-      }
-
-      function updateQueueUI() {
-        const card = document.getElementById("queue-card");
-        const grid = document.getElementById("queue-grid");
-        const count = document.getElementById("queue-count");
-        count.textContent = selectedQueue.length;
-        if (selectedQueue.length === 0) {
-          card.style.display = "none";
+        } catch (err) {
+          setStatus("Error conectando con 7TV: " + err.message, "err");
           return;
         }
-        card.style.display = "block";
-        grid.innerHTML = "";
-        selectedQueue.forEach((item, i) => {
-          const el = document.createElement("div");
-          el.className = "queue-item";
-          el.innerHTML = `<img src="${item.thumbUrl}" alt="${item.name}"><button class="remove" onclick="removeFromQueue(${i})">×</button>`;
-          el.title = item.name;
-          grid.appendChild(el);
-        });
-        // Show/hide share all button based on Web Share support
-        const shareOk = !!navigator.share && !!navigator.canShare;
-        document.getElementById("share-all-btn").style.display = shareOk ? "" : "none";
-        document.getElementById("share-hint").style.display = shareOk ? "" : "none";
-        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
 
-      function removeFromQueue(idx) {
-        const removed = selectedQueue.splice(idx, 1)[0];
-        updateQueueUI();
-        // Update search result cards
-        const card = document.querySelector(`.emote-card[data-emote-id="${removed.id}"]`);
-        if (card) {
-          card.classList.remove("selected");
-          card.querySelector(".check").textContent = "";
-        }
-      }
+        let normalized = fetched.map(normalizeEmote);
+        if (animMode === "anim") normalized = normalized.filter((e) => e.animated);
+        if (animMode === "static") normalized = normalized.filter((e) => !e.animated);
 
-      function clearQueue() {
-        selectedQueue.length = 0;
-        updateQueueUI();
-        document.querySelectorAll(".emote-card.selected").forEach(c => {
-          c.classList.remove("selected");
-          c.querySelector(".check").textContent = "";
-        });
-      }
+        state.exploreItems = resetPage ? normalized : [...state.exploreItems, ...normalized];
+        renderEmoteGrid("explore-grid", state.exploreItems);
 
-      // ── Download all as ZIP ──────────────────────────────────────────────────────
-      async function downloadAllZip() {
-        if (!selectedQueue.length) return;
-        st(`⟳ Descargando ${selectedQueue.length} emotes...`, "run");
-        const zip = new JSZip();
-        const folder = zip.folder("7tv_stickers");
-        let done = 0, errors = 0;
-        for (const item of selectedQueue) {
-          try {
-            st(`⟳ Procesando ${done+1}/${selectedQueue.length}: ${item.name}...`, "run");
-            // First fetch best quality to check if animated
-            const buf = await fetchEmoteBuffer(item.emoteData, "best");
-            const isAnim = isAnimatedGif(buf) || isAnimatedWebp(buf);
-            if (isAnim) {
-              // Animated: download as GIF — try to get GIF from 7TV first
-              const gifBuf = await fetchEmoteBuffer(item.emoteData, "gif");
-              folder.file(`${item.name}.gif`, gifBuf);
-            } else {
-              // Static: convert to PNG 512x512 via canvas
-              const pngBlob = await convertToPng(buf);
-              folder.file(`${item.name}.png`, pngBlob);
-            }
-            done++;
-          } catch (e) {
-            console.error(`Error con ${item.name}:`, e);
-            errors++;
+        document.getElementById("load-more-btn").style.display =
+          fetched.length >= 20 ? "" : "none";
+
+        if (!state.exploreItems.length) {
+          setStatus("No se encontraron emotes con esos filtros.", "err");
+        } else {
+          setStatus(
+            `✓ ${state.exploreItems.length} emotes listos — clic para editar en el Studio o [+] para armar un Pack`,
+            "ok"
+          );
+          // Auto-load first emote into Studio on initial boot so Studio is never empty!
+          if (!state.rawBuffer && state.exploreItems[0]) {
+            openEmoteInStudio(state.exploreItems[0], false);
           }
         }
-        if (done === 0) {
-          st(`✗ No se pudo descargar ningún emote`, "err");
-          return;
-        }
-        st("⟳ Generando ZIP...", "run");
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(zipBlob);
-        a.download = "7tv_stickers.zip";
-        a.click();
-        const errMsg = errors > 0 ? ` (${errors} fallidos)` : "";
-        st(`✓ ${done} stickers descargados en ZIP${errMsg}`, "ok");
       }
 
-      // mode: "best" = largest WEBP/PNG, "gif" = prefer GIF format, "static" = prefer PNG
-      async function fetchEmoteBuffer(emoteData, mode = "best") {
-        const base = emoteData.host?.url || "";
-        const files = emoteData.host?.files || [];
-        let sorted;
-        if (mode === "gif") {
-          // For animated: prefer GIF format, then WEBP
-          const order = { GIF: 0, WEBP: 1, PNG: 2 };
-          sorted = [...files].sort((a, b) => (order[a.format] ?? 9) - (order[b.format] ?? 9) || b.width - a.width);
-        } else {
-          // For static/best: prefer WEBP, then PNG
-          const order = { WEBP: 0, PNG: 1, GIF: 2 };
-          sorted = [...files].sort((a, b) => (order[a.format] ?? 9) - (order[b.format] ?? 9) || b.width - a.width);
+      function loadMoreExplore() {
+        state.explorePage += 1;
+        runExploreSearch(false);
+      }
+
+      // ── Channels & Emote Sets ────────────────────────────────────────────────────
+      async function loadGlobalSet() {
+        document.getElementById("channel-matches").innerHTML = "";
+        await fetchEmoteSetById("global", "Emotes Globales de 7TV");
+      }
+
+      async function handleSetsSearchOrUrl() {
+        const raw = document.getElementById("set-in").value.trim();
+        if (!raw) {
+          setStatus("Escribe un canal o pega un link de Emote Set.", "err");
+          return;
         }
-        if (!sorted.length) throw new Error("Sin archivos");
-        const directUrl = (base.startsWith("//") ? "https:" + base : base) + "/" + sorted[0].name;
+        document.getElementById("channel-matches").innerHTML = "";
+
+        const setMatch = raw.match(/emote-sets\/([a-z0-9]+)/i);
+        if (setMatch) {
+          await fetchEmoteSetById(setMatch[1]);
+          return;
+        }
+
+        const userMatch = raw.match(/7tv\.app\/users\/([a-z0-9]+)/i);
+        if (userMatch) {
+          await fetchUserEmoteSetBy7tvId(userMatch[1]);
+          return;
+        }
+
+        // Search streamer/user via 7TV GQL
+        setStatus(`⟳ Buscando canal "${raw}" en 7TV…`, "run");
         try {
-          const r = await fetch(directUrl);
+          const res = await fetch("https://7tv.io/v3/gql", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: `query($q:String!){users(query:$q){id username display_name avatar_url connections{platform username emote_set_id} emote_sets{id name}}}`,
+              variables: { q: raw },
+            }),
+          });
+          const json = await res.json();
+          const usersRaw = json?.data?.users;
+          const users = Array.isArray(usersRaw) ? usersRaw : usersRaw?.items || [];
+          if (!users.length) {
+            setStatus(`No se encontró ningún canal "${raw}" en 7TV.`, "err");
+            return;
+          }
+
+          renderChannelMatches(users.slice(0, 8));
+          // Automatically load the best matching first user's active emote set
+          await selectChannelUser(users[0]);
+        } catch (err) {
+          setStatus("Error buscando canal: " + err.message, "err");
+        }
+      }
+
+      function renderChannelMatches(users) {
+        const box = document.getElementById("channel-matches");
+        box.innerHTML = "";
+        users.forEach((u) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "channel-pill";
+          if (u.avatar_url) {
+            const avatar = document.createElement("img");
+            avatar.src = u.avatar_url.startsWith("//") ? "https:" + u.avatar_url : u.avatar_url;
+            avatar.alt = "";
+            btn.appendChild(avatar);
+          }
+          const span = document.createElement("span");
+          span.textContent = u.display_name || u.username;
+          btn.appendChild(span);
+          btn.addEventListener("click", () => selectChannelUser(u));
+          box.appendChild(btn);
+        });
+      }
+
+      async function selectChannelUser(u) {
+        const activeConn =
+          (u.connections || []).find((c) => c.emote_set_id) || {};
+        const setId = activeConn.emote_set_id || u.emote_sets?.[0]?.id;
+        if (!setId) {
+          await fetchUserEmoteSetBy7tvId(u.id, u.display_name || u.username);
+          return;
+        }
+        await fetchEmoteSetById(setId, `Canal: ${u.display_name || u.username}`);
+      }
+
+      async function fetchUserEmoteSetBy7tvId(userId, fallbackLabel = "") {
+        setStatus("⟳ Obteniendo perfil de 7TV…", "run");
+        try {
+          const r = await fetch(`https://7tv.io/v3/users/${userId}`);
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          const u = await r.json();
+          const conn = (u.connections || []).find((c) => c.emote_set_id);
+          const setId = conn?.emote_set_id || u.emote_sets?.[0]?.id;
+          if (!setId) throw new Error("Este usuario no tiene Emote Sets activos.");
+          await fetchEmoteSetById(setId, fallbackLabel || u.display_name || u.username);
+        } catch (e) {
+          setStatus("Error cargando usuario: " + e.message, "err");
+        }
+      }
+
+      async function fetchEmoteSetById(setId, customTitle = "") {
+        setStatus("⟳ Cargando Emote Set…", "run");
+        try {
+          const r = await fetch(`https://7tv.io/v3/emote-sets/${setId}`);
+          if (!r.ok) throw new Error("Set no encontrado (" + r.status + ")");
+          const data = await r.json();
+          const list = (data.emotes || []).map(normalizeEmote);
+          state.loadedSetItems = list;
+          document.getElementById("set-Controls").style.display = "flex";
+          document.getElementById("set-filter-in").value = "";
+          const label = customTitle || `${data.name || "Set"} (${list.length})`;
+          document.getElementById("set-title-label").textContent = `${label} · ${list.length} emotes`;
+          renderEmoteGrid("set-grid", list);
+          setStatus(`✓ ${list.length} emotes cargados de ${label}`, "ok");
+        } catch (err) {
+          setStatus("No se pudo cargar el Emote Set: " + err.message, "err");
+        }
+      }
+
+      function filterLoadedSet() {
+        const q = document.getElementById("set-filter-in").value.trim().toLowerCase();
+        const filtered = q
+          ? state.loadedSetItems.filter((e) => e.name.toLowerCase().includes(q))
+          : state.loadedSetItems;
+        renderEmoteGrid("set-grid", filtered);
+      }
+
+      // ── Render Reusable Emote Grid ───────────────────────────────────────────────
+      function renderEmoteGrid(containerId, items) {
+        const grid = document.getElementById(containerId);
+        grid.innerHTML = "";
+
+        if (!items.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.style.gridColumn = "1 / -1";
+          empty.textContent = "Sin emotes para mostrar aquí.";
+          grid.appendChild(empty);
+          return;
+        }
+
+        items.forEach((em) => {
+          const isFav = state.favorites.some((f) => f.id === em.id);
+          const inPack = state.packQueue.some((p) => p.id === em.id);
+          const isActive = state.activeId === em.id;
+
+          const tile = document.createElement("div");
+          tile.className =
+            "emote-tile" +
+            (inPack ? " in-pack" : "") +
+            (isActive ? " active-studio" : "");
+          tile.dataset.emoteId = em.id;
+          tile.tabIndex = 0;
+          tile.setAttribute("role", "button");
+          tile.setAttribute("aria-label", `Abrir emote ${em.name} en el editor`);
+
+          // Favorite button
+          const favBtn = document.createElement("button");
+          favBtn.type = "button";
+          favBtn.className = "tile-btn tile-fav" + (isFav ? " active" : "");
+          favBtn.textContent = isFav ? "★" : "☆";
+          favBtn.title = isFav ? "Quitar de favoritos" : "Guardar en favoritos";
+          favBtn.setAttribute("aria-label", `${isFav ? "Quitar" : "Guardar"} ${em.name} en favoritos`);
+          favBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleFavorite(em);
+          });
+
+          // Pack toggle button
+          const packBtn = document.createElement("button");
+          packBtn.type = "button";
+          packBtn.className = "tile-btn tile-pack";
+          packBtn.textContent = inPack ? "✓" : "+";
+          packBtn.title = inPack ? "Quitar del Pack" : "Añadir al Pack";
+          packBtn.setAttribute("aria-label", `${inPack ? "Quitar" : "Añadir"} ${em.name} al pack`);
+          packBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            togglePackEmote(em);
+          });
+
+          const thumbWrap = document.createElement("div");
+          thumbWrap.className = "emote-thumb-wrap";
+          const img = document.createElement("img");
+          img.src = em.thumbUrl;
+          img.alt = em.name;
+          img.loading = "lazy";
+          thumbWrap.appendChild(img);
+
+          if (em.animated) {
+            const animBadge = document.createElement("span");
+            animBadge.className = "tile-badge-anim";
+            animBadge.textContent = "ANIM";
+            tile.appendChild(animBadge);
+          }
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "emote-name";
+          nameSpan.textContent = em.name;
+          nameSpan.title = em.name;
+
+          tile.append(favBtn, packBtn, thumbWrap, nameSpan);
+
+          const onActivate = () => {
+            const multiMode = document.getElementById("multiselect-mode")?.checked;
+            if (multiMode && containerId === "explore-grid") {
+              togglePackEmote(em);
+            } else {
+              openEmoteInStudio(em, true);
+            }
+          };
+
+          tile.addEventListener("click", onActivate);
+          tile.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              if (e.target !== tile) return;
+              e.preventDefault();
+              onActivate();
+            }
+          });
+
+          grid.appendChild(tile);
+        });
+      }
+
+      function refreshTileStates() {
+        document.querySelectorAll(".emote-tile").forEach((tile) => {
+          const id = tile.dataset.emoteId;
+          const inPack = state.packQueue.some((p) => p.id === id);
+          const isFav = state.favorites.some((f) => f.id === id);
+          tile.classList.toggle("in-pack", inPack);
+          tile.classList.toggle("active-studio", state.activeId === id);
+          const pBtn = tile.querySelector(".tile-pack");
+          if (pBtn) pBtn.textContent = inPack ? "✓" : "+";
+          const fBtn = tile.querySelector(".tile-fav");
+          if (fBtn) {
+            fBtn.classList.toggle("active", isFav);
+            fBtn.textContent = isFav ? "★" : "☆";
+          }
+        });
+      }
+
+      // ── Favorites & Recents ──────────────────────────────────────────────────────
+      function updateSavedGrids() {
+        document.getElementById("fav-count-badge").textContent = `(${state.favorites.length})`;
+        renderEmoteGrid("favs-grid", state.favorites);
+        renderEmoteGrid("recent-grid", state.recents);
+      }
+
+      function toggleFavorite(em) {
+        const idx = state.favorites.findIndex((f) => f.id === em.id);
+        if (idx >= 0) {
+          state.favorites.splice(idx, 1);
+          showToast(`Quitado de favoritos: ${em.name}`);
+        } else {
+          state.favorites.unshift(em);
+          showToast(`⭐ Guardado en favoritos: ${em.name}`);
+        }
+        saveStorage("7tv_studio_favs", state.favorites);
+        updateSavedGrids();
+        refreshTileStates();
+      }
+
+      function pushRecent(em) {
+        if (!em || !em.id || String(em.id).startsWith("local_")) return;
+        state.recents = [em, ...state.recents.filter((r) => r.id !== em.id)].slice(0, 24);
+        saveStorage("7tv_studio_recents", state.recents);
+        updateSavedGrids();
+      }
+
+      function clearSaved(which) {
+        if (which === "favs") {
+          state.favorites = [];
+          saveStorage("7tv_studio_favs", []);
+        } else {
+          state.recents = [];
+          saveStorage("7tv_studio_recents", []);
+        }
+        updateSavedGrids();
+        refreshTileStates();
+      }
+      updateSavedGrids();
+
+      // ── Fetch Emote Binary Buffer ────────────────────────────────────────────────
+      async function fetchUrlArrayBuffer(url) {
+        try {
+          const r = await fetch(url);
           if (!r.ok) throw new Error("HTTP " + r.status);
           return await r.arrayBuffer();
-        } catch (e) {
-          const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
+        } catch {
+          const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
           const r2 = await fetch(proxy);
-          if (!r2.ok) throw new Error("proxy " + r2.status);
+          if (!r2.ok) throw new Error("Proxy " + r2.status);
           return await r2.arrayBuffer();
         }
       }
 
-      function convertToPng(buf) {
-        return new Promise((res, rej) => {
-          const img = new Image();
-          img.onload = () => {
-            const cv = document.createElement("canvas");
-            cv.width = 512; cv.height = 512;
-            const ctx = cv.getContext("2d");
-            ctx.clearRect(0, 0, 512, 512);
-            const scale = Math.min(512 / img.naturalWidth, 512 / img.naturalHeight);
-            const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-            ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
-            URL.revokeObjectURL(img.src);
-            cv.toBlob(b => b ? res(b) : rej(new Error("toBlob fail")), "image/png");
-          };
-          img.onerror = () => rej(new Error("img load fail"));
-          img.src = URL.createObjectURL(new Blob([buf]));
-        });
+      async function fetchEmoteAssetBuffer(em, preferFormat = "best") {
+        const base = em.host?.url || "";
+        const urlBase = base.startsWith("//") ? "https:" + base : base;
+        const files = em.host?.files || [];
+        if (!files.length) throw new Error("Emote sin archivos disponibles");
+
+        const order =
+          preferFormat === "gif"
+            ? { GIF: 0, WEBP: 1, PNG: 2, AVIF: 3 }
+            : { WEBP: 0, PNG: 1, GIF: 2, AVIF: 3 };
+
+        const sorted = [...files].sort(
+          (a, b) => (order[a.format] ?? 9) - (order[b.format] ?? 9) || (b.width || 0) - (a.width || 0)
+        );
+        return fetchUrlArrayBuffer(`${urlBase}/${sorted[0].name}`);
       }
 
-      async function loadEmoteById(id, name) {
-        st("⟳ Cargando " + name + "...", "run");
+      // ── Open Emote / Buffer in Studio ────────────────────────────────────────────
+      async function openEmoteInStudio(em, announce = true) {
+        state.activeId = em.id;
+        state.currentEmoteMeta = em;
+        refreshTileStates();
+        if (announce) setStatus(`⟳ Cargando ${em.name} en alta resolución…`, "run");
         try {
-          const res = await fetch(`https://7tv.io/v3/emotes/${id}`);
-          if (!res.ok) throw new Error("API " + res.status);
-          const d = await res.json();
-          const data = await fetchEmoteBuffer(d);
-          fname = name;
-          await processBuffer(data);
-        } catch (e) {
-          st("Error: " + e.message, "err");
+          const buf = await fetchEmoteAssetBuffer(em, em.animated ? "best" : "best");
+          await loadBufferIntoStudio(buf, em.name, em);
+          pushRecent(em);
+          if (announce) setStatus(`✓ Editando "${em.name}" en el Sticker Studio`, "ok");
+        } catch (err) {
+          setStatus(`Error al cargar ${em.name}: ${err.message}`, "err");
         }
       }
 
-      // ── Dropzone ─────────────────────────────────────────────────────────────────
+      // ── URL Input & Clipboard Paste ──────────────────────────────────────────────
+      async function fromUrlInput() {
+        const raw = document.getElementById("url-in").value.trim();
+        if (!raw) {
+          setStatus("Pega un enlace primero.", "err");
+          return;
+        }
+        await loadFromAnyUrl(raw);
+      }
+
+      async function loadFromAnyUrl(raw) {
+        document.getElementById("cors-note").style.display = "none";
+
+        // Check if it's an emote-set URL!
+        const setMatch = raw.match(/7tv\.app\/emote-sets\/([a-z0-9]+)/i);
+        if (setMatch) {
+          selectTab(document.getElementById("tab-sets"), false);
+          document.getElementById("set-in").value = raw;
+          await fetchEmoteSetById(setMatch[1]);
+          return;
+        }
+
+        // Check if 7TV emote page URL
+        const emoteMatch = raw.match(/7tv\.app\/emotes\/([a-z0-9]+)/i);
+        if (emoteMatch) {
+          setStatus("⟳ Obteniendo emote desde la API de 7TV…", "run");
+          try {
+            const res = await fetch(`https://7tv.io/v3/emotes/${emoteMatch[1]}`);
+            if (!res.ok) throw new Error("API " + res.status);
+            const data = await res.json();
+            const em = normalizeEmote(data);
+            await openEmoteInStudio(em, true);
+            showToast(`✓ Emote "${em.name}" importado`);
+          } catch (err) {
+            setStatus("Error en API de 7TV: " + err.message, "err");
+          }
+          return;
+        }
+
+        // Direct image URL
+        setStatus("⟳ Descargando imagen desde URL…", "run");
+        try {
+          const buf = await fetchUrlArrayBuffer(raw);
+          const cleanName =
+            raw.split("/").pop().split("?")[0].replace(/\.[^.]+$/, "") || "sticker";
+          state.activeId = null;
+          state.currentEmoteMeta = null;
+          refreshTileStates();
+          await loadBufferIntoStudio(buf, cleanName, null);
+          showToast("✓ Imagen cargada desde URL");
+        } catch {
+          setStatus("No se pudo descargar la URL por políticas CORS.", "err");
+          document.getElementById("cors-note").style.display = "block";
+        }
+      }
+
+      // Global Ctrl+V Paste handler
+      window.addEventListener("paste", async (e) => {
+        const tag = document.activeElement?.tagName;
+        const isTypingInput = tag === "INPUT" || tag === "TEXTAREA";
+
+        const items = Array.from(e.clipboardData?.items || []);
+        const imageItem = items.find((it) => it.type.startsWith("image/"));
+        if (imageItem) {
+          e.preventDefault();
+          const file = imageItem.getAsFile();
+          if (file) await handleLocalFiles([file]);
+          return;
+        }
+
+        if (!isTypingInput) {
+          const text = e.clipboardData?.getData("text/plain")?.trim();
+          if (text && /^https?:\/\//i.test(text)) {
+            e.preventDefault();
+            await loadFromAnyUrl(text);
+          }
+        }
+      });
+
+      async function pasteFromClipboardBtn() {
+        try {
+          if (navigator.clipboard?.read) {
+            const clipItems = await navigator.clipboard.read();
+            for (const item of clipItems) {
+              const imgType = item.types.find((t) => t.startsWith("image/"));
+              if (imgType) {
+                const blob = await item.getType(imgType);
+                const buf = await blob.arrayBuffer();
+                state.activeId = null;
+                state.currentEmoteMeta = null;
+                await loadBufferIntoStudio(buf, "portapapeles", null);
+                showToast("📋 Imagen pegada desde el portapapeles");
+                return;
+              }
+            }
+          }
+          const txt = await navigator.clipboard.readText();
+          if (txt && /^https?:\/\//i.test(txt.trim())) {
+            await loadFromAnyUrl(txt.trim());
+            return;
+          }
+          showToast("Copia una imagen o link de 7TV primero y vuelve a pegar.", "err");
+        } catch {
+          showToast("Presiona Ctrl+V directamente en la página para pegar.", "run");
+        }
+      }
+
+      // ── File Upload & Multi-file Dropzone ────────────────────────────────────────
       const dz = document.getElementById("dropzone");
+      const fileIn = document.getElementById("file-in");
+
       dz.addEventListener("dragover", (e) => {
         e.preventDefault();
         dz.classList.add("over");
@@ -911,357 +3063,675 @@
       dz.addEventListener("drop", (e) => {
         e.preventDefault();
         dz.classList.remove("over");
-        const f = e.dataTransfer.files[0];
-        if (f) processFile(f);
+        if (e.dataTransfer?.files?.length) {
+          handleLocalFiles(Array.from(e.dataTransfer.files));
+        }
+      });
+      fileIn.addEventListener("change", (e) => {
+        if (e.target.files?.length) {
+          handleLocalFiles(Array.from(e.target.files));
+          e.target.value = "";
+        }
       });
 
-      function fromFile(e) {
-        const f = e.target.files[0];
-        if (f) processFile(f);
-      }
+      async function handleLocalFiles(files) {
+        if (!files.length) return;
+        const first = files[0];
+        const firstBuf = await first.arrayBuffer();
+        const baseName = first.name.replace(/\.[^.]+$/, "") || "archivo";
+        state.activeId = null;
+        state.currentEmoteMeta = {
+          id: "local_" + Date.now(),
+          name: baseName,
+          localBuffer: firstBuf,
+          thumbUrl: URL.createObjectURL(first),
+        };
+        await loadBufferIntoStudio(firstBuf, baseName, state.currentEmoteMeta);
 
-      // ── Status ───────────────────────────────────────────────────────────────────
-      function st(msg, cls = "") {
-        const el = document.getElementById("status");
-        el.textContent = msg;
-        el.className = cls;
-      }
-
-      // ── Load from URL ─────────────────────────────────────────────────────────────
-      async function fromUrl() {
-        const raw = document.getElementById("url-in").value.trim();
-        if (!raw) {
-          st("Pega un link primero.", "err");
-          return;
-        }
-        document.getElementById("cors-note").style.display = "none";
-        st("⟳ Resolviendo URL...", "run");
-
-        let directUrl = "",
-          name = "emote";
-
-        // Página 7TV → API
-        const m = raw.match(/7tv\.app\/emotes\/([a-f0-9]+)/i);
-        if (m) {
-          try {
-            const res = await fetch(`https://7tv.io/v3/emotes/${m[1]}`, {
-              headers: { "User-Agent": "Mozilla/5.0" },
+        if (files.length > 1) {
+          for (const f of files) {
+            const buf = await f.arrayBuffer();
+            const n = f.name.replace(/\.[^.]+$/, "") || "sticker";
+            const id = "local_" + Math.random().toString(36).slice(2, 9);
+            state.packQueue.push({
+              id,
+              name: n,
+              animated: isAnimatedGif(buf) || isAnimatedWebp(buf),
+              thumbUrl: URL.createObjectURL(f),
+              localBuffer: buf,
             });
-            if (!res.ok) throw new Error("API " + res.status);
-            const d = await res.json();
-            name = d.name || m[1];
-            const base = d.host?.url || "";
-            const files = d.host?.files || [];
-            const order = { GIF: 0, WEBP: 1, PNG: 2 };
-            files.sort(
-              (a, b) =>
-                (order[a.format] ?? 9) - (order[b.format] ?? 9) ||
-                b.width - a.width,
-            );
-            if (!files.length) throw new Error("Sin archivos");
-            directUrl = (base.startsWith("//") ? "https:" + base : base) + "/" + files[0].name;
-          } catch (e) {
-            st("Error en API de 7TV: " + e.message, "err");
-            return;
           }
+          updatePackUI();
+          showToast(`📁 ${files.length} archivos añadidos al Pack y el primero abierto en el Studio`);
         } else {
-          directUrl = raw;
-          name =
-            raw
-              .split("/")
-              .pop()
-              .split("?")[0]
-              .replace(/\.[^.]+$/, "") || "emote";
+          showToast(`📁 "${baseName}" cargado en el Sticker Studio`);
         }
-
-        st("⟳ Descargando emote...", "run");
-
-        // Fetch directo (funciona si el CDN tiene CORS abierto, que 7TV tiene)
-        let data;
-        try {
-          const r = await fetch(directUrl);
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          data = await r.arrayBuffer();
-        } catch (e) {
-          // Fallback: proxy abierto
-          try {
-            const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`;
-            const r2 = await fetch(proxy);
-            if (!r2.ok) throw new Error("proxy " + r2.status);
-            data = await r2.arrayBuffer();
-          } catch (e2) {
-            st("No se pudo descargar (CORS).", "err");
-            document.getElementById("cors-note").style.display = "";
-            return;
-          }
-        }
-
-        fname = name;
-        await processBuffer(data);
       }
 
-      // ── Process file ──────────────────────────────────────────────────────────────
-      function processFile(file) {
-        fname = file.name.replace(/\.[^.]+$/, "");
-        file.arrayBuffer().then((buf) => processBuffer(buf));
-      }
-
-      // ── Detect animated GIF ───────────────────────────────────────────────────────
+      // ── Binary Format & Animation Detection ──────────────────────────────────────
       function isAnimatedGif(buf) {
         const bytes = new Uint8Array(buf);
         if (bytes[0] !== 0x47 || bytes[1] !== 0x49 || bytes[2] !== 0x46) return false;
-        const limit = Math.min(bytes.length, 2 * 1024 * 1024);
+        const limit = Math.min(bytes.length - 2, 2 * 1024 * 1024);
         let frames = 0;
-        for (let i = 0; i < limit - 1; i++) {
-          if (bytes[i] === 0x00 && bytes[i + 1] === 0x21 && bytes[i + 2] === 0xf9) frames++;
-          if (frames > 1) return true;
+        for (let i = 0; i < limit; i++) {
+          if (bytes[i] === 0x00 && bytes[i + 1] === 0x21 && bytes[i + 2] === 0xf9) {
+            frames++;
+            if (frames > 1) return true;
+          }
         }
         return false;
       }
 
-      // ── Detect animated WEBP ──────────────────────────────────────────────────────
       function isAnimatedWebp(buf) {
         const bytes = new Uint8Array(buf);
-        // RIFF header check
-        if (bytes[0] !== 0x52 || bytes[1] !== 0x49 || bytes[2] !== 0x46 || bytes[3] !== 0x46) return false;
-        // WEBP signature
-        if (bytes[8] !== 0x57 || bytes[9] !== 0x45 || bytes[10] !== 0x42 || bytes[11] !== 0x50) return false;
-        // Look for ANIM or ANMF chunks indicating animation
-        const text = new TextDecoder('ascii').decode(bytes.slice(0, Math.min(bytes.length, 100)));
-        // Also search further in for ANMF chunks
-        for (let i = 12; i < Math.min(bytes.length - 4, 1024 * 100); i++) {
-          if (bytes[i] === 0x41 && bytes[i+1] === 0x4E && bytes[i+2] === 0x4D && (bytes[i+3] === 0x46 || bytes[i+3] === 0x20)) return true;
+        if (
+          bytes[0] !== 0x52 ||
+          bytes[1] !== 0x49 ||
+          bytes[2] !== 0x46 ||
+          bytes[3] !== 0x46 ||
+          bytes[8] !== 0x57 ||
+          bytes[9] !== 0x45 ||
+          bytes[10] !== 0x42 ||
+          bytes[11] !== 0x50
+        ) {
+          return false;
+        }
+        const limit = Math.min(bytes.length - 4, 120 * 1024);
+        for (let i = 12; i < limit; i++) {
+          if (
+            bytes[i] === 0x41 &&
+            bytes[i + 1] === 0x4e &&
+            bytes[i + 2] === 0x4d &&
+            (bytes[i + 3] === 0x46 || bytes[i + 3] === 0x20)
+          ) {
+            return true;
+          }
         }
         return false;
       }
 
-      // ── Process buffer ────────────────────────────────────────────────────────────
-      async function processBuffer(buf) {
-        st("⟳ Convirtiendo...", "run");
-        animated = isAnimatedGif(buf) || isAnimatedWebp(buf);
+      function detectMime(buf) {
+        const b = new Uint8Array(buf);
+        if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return "image/gif";
+        if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[8] === 0x57) return "image/webp";
+        if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+        return "image/png";
+      }
 
-        const raw = new Blob([buf]);
-        const url = URL.createObjectURL(raw);
+      // ── Studio Rendering Engine (512x512 + Outline + Shadow + Meme Text) ─────────
+      async function loadBufferIntoStudio(buf, name, meta = null) {
+        state.rawBuffer = buf;
+        state.fname = name || "sticker";
+        document.getElementById("fname-in").value = state.fname;
 
-        if (animated) {
-          await handleGif(url, buf);
+        const isAnim = isAnimatedGif(buf) || isAnimatedWebp(buf);
+        state.isSourceAnimated = isAnim;
+        state.editAnimatedAsStatic = false;
+        state.animMime = detectMime(buf);
+
+        if (state.animObjectUrl) URL.revokeObjectURL(state.animObjectUrl);
+        state.animObjectUrl = URL.createObjectURL(new Blob([buf], { type: state.animMime }));
+
+        // Always decode an HTMLImageElement so we can render static frames or dimensions
+        state.sourceImage = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("No se pudo decodificar la imagen"));
+          img.src = state.animObjectUrl;
+        });
+
+        const banner = document.getElementById("anim-banner");
+        banner.style.display = isAnim ? "flex" : "none";
+        updateAnimBannerUI();
+        await renderStudio();
+      }
+
+      function toggleAnimEditMode() {
+        state.editAnimatedAsStatic = !state.editAnimatedAsStatic;
+        updateAnimBannerUI();
+        renderStudio();
+      }
+
+      function updateAnimBannerUI() {
+        const txt = document.getElementById("anim-banner-text");
+        const btn = document.getElementById("toggle-anim-edit-btn");
+        if (state.editAnimatedAsStatic) {
+          txt.textContent = "🖼️ Editando fotograma estático 512×512";
+          btn.textContent = "Volver a Animado";
         } else {
-          await handleStatic(url, buf);
+          txt.textContent = `🎞️ Animación activa (${state.animMime === "image/gif" ? "GIF" : "WEBP"})`;
+          btn.textContent = "Editar con texto/borde";
         }
       }
 
-      // ── Static image → canvas 512×512 → PNG blob ────────────────────────────────
-      function handleStatic(url, buf) {
-        return new Promise((res, rej) => {
-          const img = new Image();
-          img.onload = () => {
-            const cv = document.getElementById("prev-canvas");
-            cv.width = 512;
-            cv.height = 512;
-            const ctx = cv.getContext("2d");
-            ctx.clearRect(0, 0, 512, 512);
-            const scale = Math.min(
-              512 / img.naturalWidth,
-              512 / img.naturalHeight,
-            );
-            const w = img.naturalWidth * scale,
-              h = img.naturalHeight * scale;
-            ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
-            URL.revokeObjectURL(url);
+      function setStageBg(bg, btn) {
+        document.getElementById("stage-outer").dataset.bg = bg;
+        document.querySelectorAll(".bg-pill").forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+      }
 
-            cv.toBlob(
-              (b) => {
-                blob = b;
-                showPreview(cv.toDataURL(), false, b.size);
-                st("✓ Sticker listo (PNG)", "ok");
-                res();
-              },
-              "image/png",
-            );
-          };
-          img.onerror = () => {
-            st("No se pudo leer la imagen.", "err");
-            rej();
-          };
-          img.src = url;
+      function setFitMode(mode, btn) {
+        state.fitMode = mode;
+        document.querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderStudio();
+      }
+
+      function flipStudio(axis) {
+        if (state.isSourceAnimated && !state.editAnimatedAsStatic) {
+          state.editAnimatedAsStatic = true;
+          updateAnimBannerUI();
+        }
+        if (axis === "h") state.flipH *= -1;
+        else state.flipV *= -1;
+        renderStudio();
+      }
+
+      function rotateStudio(deg) {
+        if (state.isSourceAnimated && !state.editAnimatedAsStatic) {
+          state.editAnimatedAsStatic = true;
+          updateAnimBannerUI();
+        }
+        state.rotation = (state.rotation + deg) % 360;
+        renderStudio();
+      }
+
+      function resetStudioAdjustments() {
+        state.fitMode = "contain";
+        state.flipH = 1;
+        state.flipV = 1;
+        state.rotation = 0;
+        document.querySelectorAll(".seg-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.fit === "contain");
         });
+        document.getElementById("scale-slider").value = 96;
+        document.getElementById("outline-slider").value = 0;
+        document.getElementById("shadow-slider").value = 0;
+        document.getElementById("caption-top").value = "";
+        document.getElementById("caption-bottom").value = "";
+        document.getElementById("font-slider").value = 54;
+        document.getElementById("quality-slider").value = 92;
+        syncAllSliders.forEach((fn) => fn());
+        renderStudio();
       }
 
-      // ── Animated image — detect type, preserve original ────────────────────────────
-      async function handleGif(url, buf) {
-        const img = document.getElementById("prev-img");
-        img.src = url;
-        img.style.display = "";
-        document.getElementById("prev-canvas").style.display = "none";
+      function getStudioSettings() {
+        return {
+          fitMode: state.fitMode,
+          scalePct: Number(document.getElementById("scale-slider").value) / 100,
+          outlinePx: Number(document.getElementById("outline-slider").value),
+          outlineColor: document.getElementById("outline-color").value,
+          shadowPx: Number(document.getElementById("shadow-slider").value),
+          topText: document.getElementById("caption-top").value.trim(),
+          bottomText: document.getElementById("caption-bottom").value.trim(),
+          fontSize: Number(document.getElementById("font-slider").value),
+          textColor: document.getElementById("text-color").value,
+          format: document.getElementById("export-format").value,
+          quality: Number(document.getElementById("quality-slider").value) / 100,
+          flipH: state.flipH,
+          flipV: state.flipV,
+          rotation: state.rotation,
+        };
+      }
 
-        // Detect correct mime type
-        const bytes = new Uint8Array(buf);
-        let mimeType = "image/gif";
-        if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-            bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
-          mimeType = "image/webp";
+      // Core 512x512 Canvas Compositor (reusable for both Studio & Batch ZIP)
+      function drawStickerOnCanvas(cv, img, cfg) {
+        cv.width = 512;
+        cv.height = 512;
+        const ctx = cv.getContext("2d");
+        ctx.clearRect(0, 0, 512, 512);
+
+        // 1. Render base transformed image onto an offscreen canvas
+        const off = document.createElement("canvas");
+        off.width = 512;
+        off.height = 512;
+        const octx = off.getContext("2d");
+
+        const targetBox = 512 * cfg.scalePct;
+        const nw = img.naturalWidth || 128;
+        const nh = img.naturalHeight || 128;
+
+        let drawW = targetBox;
+        let drawH = targetBox;
+        if (cfg.fitMode === "contain") {
+          const s = Math.min(targetBox / nw, targetBox / nh);
+          drawW = nw * s;
+          drawH = nh * s;
+        } else if (cfg.fitMode === "cover") {
+          const s = Math.max(targetBox / nw, targetBox / nh);
+          drawW = nw * s;
+          drawH = nh * s;
         }
 
-        blob = new Blob([buf], { type: mimeType });
-        animated = true;
-        const label = mimeType === "image/webp" ? "WEBP animado" : "GIF animado";
-        showPreview(null, true, blob.size);
-        st("✓ " + label + " listo", "ok");
-      }
+        octx.save();
+        octx.translate(256, 256);
+        octx.rotate((cfg.rotation * Math.PI) / 180);
+        octx.scale(cfg.flipH, cfg.flipV);
+        octx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+        octx.restore();
 
-      // ── Show preview UI ───────────────────────────────────────────────────────────
-      function showPreview(dataUrl, isAnim, size) {
-        const card = document.getElementById("preview-card");
-        card.style.display = "block";
-
-        const cv = document.getElementById("prev-canvas");
-        const img = document.getElementById("prev-img");
-
-        if (!isAnim) {
-          cv.style.display = "";
-          img.style.display = "none";
+        // 2. Optional Drop Shadow + Die-Cut Sticker Outline via radial silhouette stamping
+        if (cfg.shadowPx > 0) {
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+          ctx.shadowBlur = cfg.shadowPx;
+          ctx.shadowOffsetY = Math.round(cfg.shadowPx * 0.28);
         }
 
-        const kb = (size / 1024).toFixed(1);
-        document.getElementById("frame-badge").textContent = kb + " KB";
+        if (cfg.outlinePx > 0) {
+          const sil = document.createElement("canvas");
+          sil.width = 512;
+          sil.height = 512;
+          const sctx = sil.getContext("2d");
+          sctx.drawImage(off, 0, 0);
+          sctx.globalCompositeOperation = "source-in";
+          sctx.fillStyle = cfg.outlineColor;
+          sctx.fillRect(0, 0, 512, 512);
 
-        const over = (!isAnim && size > 500000) || (isAnim && size > 1000000);
-        document.getElementById("meta").innerHTML = `
-    <b>Formato:</b> ${isAnim ? "GIF/WEBP animado" : "PNG estático 512×512"}<br>
-    <b>Tamaño:</b> ${isAnim ? "original" : "512 × 512 px"}<br>
-    <b>Peso:</b> ${kb} KB
-    <span class="${over ? "warn" : "ok"}">${over ? "⚠ puede superar límite WA" : "✓ OK"}</span>
-  `;
+          const steps = Math.max(16, cfg.outlinePx * 3);
+          for (let i = 0; i < steps; i++) {
+            const angle = (i / steps) * Math.PI * 2;
+            const ox = Math.cos(angle) * cfg.outlinePx;
+            const oy = Math.sin(angle) * cfg.outlinePx;
+            ctx.drawImage(sil, ox, oy);
+          }
+          if (cfg.shadowPx > 0) ctx.restore();
+          ctx.drawImage(off, 0, 0);
+        } else {
+          ctx.drawImage(off, 0, 0);
+          if (cfg.shadowPx > 0) ctx.restore();
+        }
 
-        // Web Share disponible?
-        const shareOk = !!navigator.share && !!navigator.canShare;
-        document.getElementById("share-btn").style.display = shareOk
-          ? ""
-          : "none";
-        document.getElementById("share-fallback").style.display = shareOk
-          ? "none"
-          : "";
+        // 3. Optional Meme Text Overlay (Top & Bottom)
+        if (cfg.topText || cfg.bottomText) {
+          ctx.save();
+          ctx.font = `700 ${cfg.fontSize}px "Bebas Neue", Impact, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.lineJoin = "round";
+          ctx.miterLimit = 2;
+          ctx.lineWidth = Math.max(6, Math.round(cfg.fontSize * 0.16));
+          ctx.strokeStyle = "#000000";
+          ctx.fillStyle = cfg.textColor;
 
-        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          if (cfg.topText) {
+            ctx.textBaseline = "top";
+            ctx.strokeText(cfg.topText, 256, 16, 488);
+            ctx.fillText(cfg.topText, 256, 16, 488);
+          }
+          if (cfg.bottomText) {
+            ctx.textBaseline = "bottom";
+            ctx.strokeText(cfg.bottomText, 256, 496, 488);
+            ctx.fillText(cfg.bottomText, 256, 496, 488);
+          }
+          ctx.restore();
+        }
       }
 
-      // ── Download ──────────────────────────────────────────────────────────────────
-      function download() {
+      async function renderStudio() {
+        const cv = document.getElementById("studio-canvas");
+        const animImg = document.getElementById("studio-anim-img");
+        const cfg = getStudioSettings();
+
+        document.getElementById("quality-field").style.display =
+          cfg.format === "image/webp" ? "" : "none";
+
+        if (!state.sourceImage || !state.rawBuffer) {
+          const ctx = cv.getContext("2d");
+          ctx.clearRect(0, 0, 512, 512);
+          return;
+        }
+
+        // If user tampered with text/outline while animated, auto-enable static edit if typing
+        if (
+          state.isSourceAnimated &&
+          !state.editAnimatedAsStatic &&
+          (cfg.topText || cfg.bottomText || cfg.outlinePx > 0 || cfg.shadowPx > 0)
+        ) {
+          state.editAnimatedAsStatic = true;
+          updateAnimBannerUI();
+        }
+
+        if (state.isSourceAnimated && !state.editAnimatedAsStatic) {
+          cv.style.display = "none";
+          animImg.style.display = "";
+          animImg.src = state.animObjectUrl;
+          state.outputBlob = new Blob([state.rawBuffer], { type: state.animMime });
+
+          const kb = (state.outputBlob.size / 1024).toFixed(1);
+          const over = state.outputBlob.size > 1000 * 1024;
+          document.getElementById("badge-dims").textContent = `${state.sourceImage.naturalWidth}×${state.sourceImage.naturalHeight} · ${state.animMime === "image/gif" ? "GIF" : "WEBP"} Anim`;
+          const sizeBadge = document.getElementById("badge-size");
+          sizeBadge.textContent = `${kb} KB ${over ? "⚠ >1MB WA" : "✓ OK"}`;
+          sizeBadge.className = "stage-badge " + (over ? "warn" : "ok");
+          return;
+        }
+
+        animImg.style.display = "none";
+        cv.style.display = "";
+        drawStickerOnCanvas(cv, state.sourceImage, cfg);
+
+        const blob = await new Promise((res) =>
+          cv.toBlob((b) => res(b), cfg.format, cfg.quality)
+        );
         if (!blob) return;
-        let ext = "png";
-        if (blob.type === "image/gif") ext = "gif";
-        else if (blob.type === "image/webp") ext = "webp";
-        else if (blob.type === "image/png") ext = "png";
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `sticker_${fname}.${ext}`;
-        a.click();
+        state.outputBlob = blob;
+
+        const kb = (blob.size / 1024).toFixed(1);
+        const over = blob.size > 500 * 1024;
+        const fmtShort = cfg.format === "image/webp" ? "WEBP" : "PNG";
+        document.getElementById("badge-dims").textContent = `512×512 · ${fmtShort}`;
+        const sizeBadge = document.getElementById("badge-size");
+        sizeBadge.textContent = `${kb} KB ${over ? "⚠ >500KB" : "✓ OK WA"}`;
+        sizeBadge.className = "stage-badge " + (over ? "warn" : "ok");
       }
 
-      // ── Convert buffer to WEBP 512×512 blob (for WA sticker without border) ────────
-      function convertToWebp512(buf) {
-        return new Promise((res, rej) => {
-          const img = new Image();
-          img.onload = () => {
-            const cv = document.createElement("canvas");
-            cv.width = 512; cv.height = 512;
-            const ctx = cv.getContext("2d");
-            ctx.clearRect(0, 0, 512, 512);
-            const scale = Math.min(512 / img.naturalWidth, 512 / img.naturalHeight);
-            const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-            ctx.drawImage(img, (512 - w) / 2, (512 - h) / 2, w, h);
-            URL.revokeObjectURL(img.src);
-            cv.toBlob(b => b ? res(b) : rej(new Error("toBlob fail")), "image/webp", 0.95);
-          };
-          img.onerror = () => rej(new Error("img load fail"));
-          img.src = URL.createObjectURL(new Blob([buf]));
-        });
-      }
-
-      // ── Web Share → WhatsApp (single sticker) ──────────────────────────────────────
-      async function shareToWA() {
-        if (!blob) return;
+      // ── Single Sticker Export: Copy, Download, WhatsApp Share ────────────────────
+      async function copyStickerToClipboard() {
+        if (!state.sourceImage) {
+          showToast("Selecciona un emote primero.", "err");
+          return;
+        }
         try {
-          // Always convert to WEBP 512x512 for WA sticker (no white border)
-          let shareBlob = blob;
-          if (blob.type !== "image/webp") {
-            const buf = await blob.arrayBuffer();
-            shareBlob = await convertToWebp512(buf);
+          const cv = document.getElementById("studio-canvas");
+          if (state.isSourceAnimated && !state.editAnimatedAsStatic) {
+            drawStickerOnCanvas(cv, state.sourceImage, getStudioSettings());
           }
-          const file = new File([shareBlob], `sticker_${fname}.webp`, { type: "image/webp" });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: fname });
-            st("✓ Compartido — elige WhatsApp > Agregar a stickers", "ok");
-          } else {
-            st("Tu navegador no soporta compartir este archivo.", "err");
-          }
-        } catch (e) {
-          if (e.name !== "AbortError")
-            st("Error al compartir: " + e.message, "err");
+          const pngBlob = await new Promise((res, rej) =>
+            cv.toBlob((b) => (b ? res(b) : rej(new Error("toBlob"))), "image/png")
+          );
+          await navigator.clipboard.write([new ClipboardItem({ "image/png": pngBlob })]);
+          showToast("📋 ¡Copiado! Pégalo con Ctrl+V en WhatsApp Web o Discord");
+        } catch (err) {
+          showToast("Tu navegador bloqueó copiar imagen: usa Descargar.", "err");
         }
       }
 
-      // ── Share all selected emotes to WA one by one ────────────────────────────
-      async function shareAllToWA() {
-        if (!selectedQueue.length) return;
-        const total = selectedQueue.length;
-        const progWrap = document.getElementById("progress-wrap");
-        const progBar = document.getElementById("progress-bar");
-        progWrap.style.display = "";
-        progBar.style.width = "0%";
-        let done = 0, errors = 0;
-        for (const item of selectedQueue) {
+      function downloadCurrentSticker() {
+        if (!state.outputBlob) {
+          showToast("Selecciona un emote primero.", "err");
+          return;
+        }
+        let ext = "webp";
+        if (state.outputBlob.type === "image/png") ext = "png";
+        else if (state.outputBlob.type === "image/gif") ext = "gif";
+
+        const url = URL.createObjectURL(state.outputBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `sticker_${state.fname}.${ext}`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+        showToast(`⬇ Descargado: sticker_${state.fname}.${ext}`);
+      }
+
+      async function shareCurrentToWA() {
+        if (!state.outputBlob || !state.sourceImage) {
+          showToast("Selecciona un emote primero.", "err");
+          return;
+        }
+
+        // Convert static PNG to WEBP 512x512 automatically so WhatsApp removes white background
+        let shareBlob = state.outputBlob;
+        let ext = "webp";
+        let mime = "image/webp";
+
+        if (state.isSourceAnimated && !state.editAnimatedAsStatic) {
+          if (state.outputBlob.type === "image/gif") {
+            ext = "gif";
+            mime = "image/gif";
+          }
+        } else if (shareBlob.type !== "image/webp") {
+          const cv = document.getElementById("studio-canvas");
+          shareBlob = await new Promise((res) => cv.toBlob((b) => res(b), "image/webp", 0.92));
+        }
+
+        const file = new File([shareBlob], `sticker_${state.fname}.${ext}`, { type: mime });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
-            st(`⟳ Preparando ${done+1}/${total}: ${item.name}...`, "run");
-            const buf = await fetchEmoteBuffer(item.emoteData, "best");
-            const webpBlob = await convertToWebp512(buf);
-            const file = new File([webpBlob], `sticker_${item.name}.webp`, { type: "image/webp" });
+            await navigator.share({ files: [file], title: state.fname });
+            showToast("✓ Compartido — elige WhatsApp en el menú");
+          } catch (e) {
+            if (e.name !== "AbortError") showToast("Error al compartir: " + e.message, "err");
+          }
+        } else {
+          // Helpful desktop behavior: download WEBP 512x512 and open quick guide
+          downloadCurrentSticker();
+          openHelpDialog();
+        }
+      }
+
+      // Update share button label depending on device Web Share support
+      (function checkShareSupport() {
+        const canShareFiles = Boolean(navigator.share && navigator.canShare);
+        document.getElementById("share-wa-label").textContent = canShareFiles
+          ? "Compartir Sticker a WhatsApp"
+          : "Descargar para WhatsApp Web + Guía";
+        document.getElementById("share-pack-btn").style.display = canShareFiles ? "" : "none";
+      })();
+
+      // ── Pack / Batch Builder ─────────────────────────────────────────────────────
+      function togglePackEmote(em) {
+        const idx = state.packQueue.findIndex((p) => p.id === em.id);
+        if (idx >= 0) {
+          state.packQueue.splice(idx, 1);
+        } else {
+          state.packQueue.push(em);
+        }
+        updatePackUI();
+        refreshTileStates();
+      }
+
+      function addCurrentStudioToPack() {
+        if (!state.rawBuffer) {
+          showToast("Carga un emote primero.", "err");
+          return;
+        }
+        const item = state.currentEmoteMeta || {
+          id: "studio_" + Date.now(),
+          name: state.fname,
+          animated: state.isSourceAnimated && !state.editAnimatedAsStatic,
+          thumbUrl: state.animObjectUrl,
+          localBuffer: state.rawBuffer,
+        };
+        if (state.packQueue.some((p) => p.id === item.id)) {
+          showToast(`"${item.name}" ya está en tu Pack.`);
+          return;
+        }
+        state.packQueue.push(item);
+        updatePackUI();
+        refreshTileStates();
+        showToast(`➕ "${item.name}" añadido al Pack (${state.packQueue.length})`);
+      }
+
+      function selectAllVisible(gridId) {
+        const sourceList = gridId === "explore-grid" ? state.exploreItems : state.loadedSetItems;
+        let added = 0;
+        for (const em of sourceList) {
+          if (!state.packQueue.some((p) => p.id === em.id)) {
+            state.packQueue.push(em);
+            added++;
+          }
+        }
+        updatePackUI();
+        refreshTileStates();
+        showToast(added ? `➕ ${added} emotes añadidos al Pack` : "Todos ya estaban en el Pack");
+      }
+
+      function clearPack() {
+        state.packQueue = [];
+        updatePackUI();
+        refreshTileStates();
+      }
+
+      function updatePackUI() {
+        const dock = document.getElementById("pack-dock");
+        const countEl = document.getElementById("pack-count");
+        const strip = document.getElementById("pack-strip");
+
+        countEl.textContent = state.packQueue.length;
+        dock.classList.toggle("visible", state.packQueue.length > 0);
+        strip.innerHTML = "";
+
+        state.packQueue.forEach((item, idx) => {
+          const box = document.createElement("div");
+          box.className = "pack-thumb";
+          box.title = item.name;
+
+          const img = document.createElement("img");
+          img.src = item.thumbUrl;
+          img.alt = item.name;
+
+          const rm = document.createElement("button");
+          rm.type = "button";
+          rm.textContent = "×";
+          rm.setAttribute("aria-label", `Quitar ${item.name} del pack`);
+          rm.addEventListener("click", () => {
+            state.packQueue.splice(idx, 1);
+            updatePackUI();
+            refreshTileStates();
+          });
+
+          box.append(img, rm);
+          strip.appendChild(box);
+        });
+      }
+
+      async function convertBufferToStickerBlob(buf, mime, applyStudio) {
+        const url = URL.createObjectURL(new Blob([buf]));
+        try {
+          const img = await new Promise((res, rej) => {
+            const i = new Image();
+            i.onload = () => res(i);
+            i.onerror = () => rej(new Error("img decode fail"));
+            i.src = url;
+          });
+          const cv = document.createElement("canvas");
+          const cfg = applyStudio
+            ? { ...getStudioSettings(), topText: "", bottomText: "" }
+            : {
+                fitMode: "contain",
+                scalePct: 0.96,
+                outlinePx: 0,
+                outlineColor: "#ffffff",
+                shadowPx: 0,
+                topText: "",
+                bottomText: "",
+                fontSize: 54,
+                textColor: "#ffffff",
+                flipH: 1,
+                flipV: 1,
+                rotation: 0,
+              };
+          drawStickerOnCanvas(cv, img, cfg);
+          return await new Promise((res, rej) =>
+            cv.toBlob((b) => (b ? res(b) : rej(new Error("toBlob fail"))), mime, 0.92)
+          );
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      async function downloadPackZip() {
+        if (!state.packQueue.length) return;
+        const zipBtn = document.getElementById("zip-btn");
+        const prog = document.getElementById("pack-progress");
+        const fill = document.getElementById("pack-progress-fill");
+        const mode = document.getElementById("zip-format-select").value;
+        const applyStudio = document.getElementById("batch-apply-studio").checked;
+
+        zipBtn.disabled = true;
+        prog.style.display = "block";
+        fill.style.width = "0%";
+
+        const zip = new JSZip();
+        const folder = zip.folder("7tv_stickers");
+        const usedNames = new Map();
+        let done = 0;
+        let errors = 0;
+
+        for (const item of state.packQueue) {
+          try {
+            setStatus(`⟳ Procesando ${done + 1}/${state.packQueue.length}: ${item.name}…`, "run");
+            const safeBase = (item.name || "sticker").replace(/[\\/:*?"<>|]/g, "_");
+            const seen = usedNames.get(safeBase) || 0;
+            usedNames.set(safeBase, seen + 1);
+            const finalName = seen > 0 ? `${safeBase}_${seen}` : safeBase;
+
+            const buf = item.localBuffer
+              ? item.localBuffer
+              : await fetchEmoteAssetBuffer(item, mode === "png-gif" ? "gif" : "best");
+
+            const isAnim = isAnimatedGif(buf) || isAnimatedWebp(buf);
+
+            if (isAnim && mode !== "webp-static") {
+              if (mode === "png-gif" && !isAnimatedGif(buf) && !item.localBuffer) {
+                const gifBuf = await fetchEmoteAssetBuffer(item, "gif");
+                const ext = isAnimatedGif(gifBuf) ? "gif" : "webp";
+                folder.file(`${finalName}.${ext}`, gifBuf);
+              } else {
+                const ext = isAnimatedGif(buf) ? "gif" : "webp";
+                folder.file(`${finalName}.${ext}`, buf);
+              }
+            } else {
+              const targetMime = mode === "png-gif" ? "image/png" : "image/webp";
+              const targetExt = mode === "png-gif" ? "png" : "webp";
+              const outBlob = await convertBufferToStickerBlob(buf, targetMime, applyStudio);
+              folder.file(`${finalName}.${targetExt}`, outBlob);
+            }
+            done++;
+          } catch (err) {
+            console.error("Error procesando", item.name, err);
+            errors++;
+          }
+          fill.style.width = `${Math.round(((done + errors) / state.packQueue.length) * 100)}%`;
+        }
+
+        if (done > 0) {
+          setStatus("⟳ Empaquetando archivo ZIP…", "run");
+          const zipBlob = await zip.generateAsync({ type: "blob" });
+          const url = URL.createObjectURL(zipBlob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `7tv_pack_${done}_stickers.zip`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 4000);
+          showToast(
+            `📦 Pack descargado: ${done} stickers${errors ? ` (${errors} omitidos)` : ""}`
+          );
+        } else {
+          showToast("No se pudo procesar ningún emote del pack.", "err");
+        }
+
+        zipBtn.disabled = false;
+        prog.style.display = "none";
+      }
+
+      async function sharePackSequentially() {
+        if (!state.packQueue.length) return;
+        const applyStudio = document.getElementById("batch-apply-studio").checked;
+        let sent = 0;
+        for (const item of state.packQueue) {
+          try {
+            setStatus(`⟳ Preparando ${sent + 1}/${state.packQueue.length}: ${item.name}…`, "run");
+            const buf = item.localBuffer
+              ? item.localBuffer
+              : await fetchEmoteAssetBuffer(item, "best");
+            const blob = await convertBufferToStickerBlob(buf, "image/webp", applyStudio);
+            const file = new File([blob], `sticker_${item.name}.webp`, { type: "image/webp" });
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
               await navigator.share({ files: [file], title: item.name });
-              done++;
-            } else {
-              errors++;
+              sent++;
             }
           } catch (e) {
-            if (e.name === "AbortError") {
-              // User cancelled — skip this one but continue
-              done++;
-            } else {
-              console.error(`Error sharing ${item.name}:`, e);
-              errors++;
-            }
+            if (e.name === "AbortError") break;
           }
-          progBar.style.width = `${((done + errors) / total) * 100}%`;
         }
-        progWrap.style.display = "none";
-        const errMsg = errors > 0 ? ` (${errors} fallidos)` : "";
-        st(`✓ ${done} stickers compartidos${errMsg}`, "ok");
+        showToast(`📲 ${sent} stickers compartidos`);
       }
 
-      // ── Reset ─────────────────────────────────────────────────────────────────────
-      function reset() {
-        blob = null;
-        animated = false;
-        fname = "sticker";
-        document.getElementById("preview-card").style.display = "none";
-        document.getElementById("cors-note").style.display = "none";
-        document.getElementById("url-in").value = "";
-        document.getElementById("search-in").value = "";
-        document.getElementById("search-results").innerHTML = "";
-        // Clear queue
-        selectedQueue.length = 0;
-        updateQueueUI();
-        // Reemplazar el input file con un clon para limpiar correctamente en todos los navegadores
-        const fi = document.getElementById("file-in");
-        const clone = fi.cloneNode(true);
-        clone.addEventListener("change", fromFile);
-        fi.replaceWith(clone);
-        const img = document.getElementById("prev-img");
-        img.src = "";
-        img.style.display = "none";
-        document.getElementById("prev-canvas").style.display = "none";
-        st("");
-      }
+      // Initial load: populate Explore gallery with top popular 7TV emotes!
+      runExploreSearch(true);
     </script>
   </body>
 </html>
