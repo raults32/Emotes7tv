@@ -26,6 +26,7 @@ export function initPackView() {
   const countEl = document.getElementById("pack-count");
   const strip = document.getElementById("pack-strip");
   const zipBtn = document.getElementById("zip-btn");
+  const gifZipBtn = document.getElementById("gif-zip-btn");
   const openWaPackBtn = document.getElementById("open-wastickers-btn");
   const sharePackBtn = document.getElementById("share-pack-btn");
   const clearBtn = document.getElementById("clear-pack-btn");
@@ -258,16 +259,18 @@ export function initPackView() {
     runWastickersExport(true)
   );
 
-  // Standard `.ZIP` Download
-  zipBtn?.addEventListener("click", async () => {
+  async function executeZipDownload(forcedMode = null) {
     if (!state.packQueue.length) return;
     const mode =
-      document.getElementById("zip-format-select")?.value || "webp-all";
+      forcedMode ||
+      document.getElementById("zip-format-select")?.value ||
+      "webp-all";
     const applyStudio = Boolean(
       document.getElementById("batch-apply-studio")?.checked
     );
 
-    zipBtn.disabled = true;
+    if (zipBtn) zipBtn.disabled = true;
+    if (gifZipBtn) gifZipBtn.disabled = true;
     prog?.classList.remove("is-hidden");
     fill?.style.setProperty("--pack-pct", "0%");
 
@@ -277,15 +280,24 @@ export function initPackView() {
         mode,
         studioConfig: applyStudio ? getStudioSettings() : null,
         onProgress: ({ current, total, name, pct }) => {
-          setStatus(`⟳ Procesando ${current}/${total}: ${name}…`, "run");
+          setStatus(
+            `⟳ ${mode === "gif-all" ? "Codificando GIF" : "Procesando"} ${current}/${total}: ${name}…`,
+            "run"
+          );
           fill?.style.setProperty("--pack-pct", `${pct}%`);
         },
       });
 
       if (zipBlob && done > 0) {
-        triggerBlobDownload(zipBlob, `7tv_pack_${done}_stickers.zip`);
+        const zipName =
+          mode === "gif-all"
+            ? `7tv_pack_${done}_gifs.zip`
+            : `7tv_pack_${done}_stickers.zip`;
+        triggerBlobDownload(zipBlob, zipName);
         showToast(
-          `📦 Pack ZIP descargado: ${done} stickers${errors ? ` (${errors} omitidos)` : ""}`
+          mode === "gif-all"
+            ? `🎞️ Pack GIF descargado: ${done} GIFs${errors ? ` (${errors} omitidos)` : ""}`
+            : `📦 Pack ZIP descargado: ${done} stickers${errors ? ` (${errors} omitidos)` : ""}`
         );
       } else {
         showToast("No se pudo procesar ningún emote del pack.", "err");
@@ -293,10 +305,14 @@ export function initPackView() {
     } catch (err) {
       showToast(`Error creando ZIP: ${err.message}`, "err");
     } finally {
-      zipBtn.disabled = false;
+      if (zipBtn) zipBtn.disabled = false;
+      if (gifZipBtn) gifZipBtn.disabled = false;
       prog?.classList.add("is-hidden");
     }
-  });
+  }
+
+  zipBtn?.addEventListener("click", () => executeZipDownload(null));
+  gifZipBtn?.addEventListener("click", () => executeZipDownload("gif-all"));
 
   // Single-shot Multi-File Batch Share to WhatsApp Chat
   sharePackBtn?.addEventListener("click", async () => {

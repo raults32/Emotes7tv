@@ -14,6 +14,11 @@ import {
   encodeAnimatedBufferToWebp512,
   wrapStaticCanvasAsAnimatedWebp,
 } from "./animatedWebp.js";
+import {
+  encodeCanvasToGifBlob,
+  encodeAnimatedBufferToGif,
+} from "./gifEncoder.js";
+import { createYieldBudget } from "./scheduler.js";
 import { fetchEmoteAssetBuffer } from "../services/sevenTvApi.js";
 
 function chunkArray(items, chunkSize = 30) {
@@ -24,31 +29,108 @@ function chunkArray(items, chunkSize = 30) {
   return chunks;
 }
 
-async function resolveItemBuffer(item, preferFormat = "best") {
-  if (item.localBuffer) return item.localBuffer;
+/**
+ * Lazily reads an item's binary buffer one item at a time so uploading
+ * hundreds or thousands of local `File` handles uses near-zero idle RAM.
+ */
+export async function resolveItemBuffer(item, preferFormat = "best") {
+  if (item.file instanceof Blob) {
+    return item.file.arrayBuffer();
+  }
+  if (item.localBuffer) {
+    return item.localBuffer;
+  }
   return fetchEmoteAssetBuffer(item, preferFormat);
 }
 
 /**
- * Builds standard `.ZIP` archive of stickers (for PC, Discord, Telegram, backups).
+ * Lightweight animation check that inspects only the first 128 KB slice when
+ * backed by a local `File` handle instead of loading megabytes into RAM.
+ */
+async function probeIsItemAnimated(item) {
+  if (typeof item.animated === "boolean") return item.animated;
+  if (item.file instanceof Blob) {
+    const nameLower = (item.file.name || "").toLowerCase();
+    if (
+      nameLower.endsWith(".png") ||
+      nameLower.endsWith(".jpg") ||
+      nameLower.endsWith(".jpeg")
+    ) {
+      return false;
+    }
+    const headerSlice = await item.file.slice(0, 131_072).arrayBuffer();
+    return isAnimatedBuffer(headerSlice);
+  }
+  if (item.localBuffer) {
+    return isAnimatedBuffer(item.localBuffer);
+  }
+  return false;
+}
+
+/**
+ * Converts a single binary buffer into a `.gif` Blob or ArrayBuffer.
+ */
+export async function convertBufferToGifOutput(buf, studioConfig = null) {
+  const isAnim = isAnimatedBuffer(buf);
+  const hasCustomEdits = Boolean(
+    studioConfig &&
+      (studioConfig.outlinePx > 0 ||
+        studioConfig.shadowPx > 0 ||
+        studioConfig.fitMode !== "contain" ||
+        studioConfig.flipH !== 1 ||
+        studioConfig.flipV !== 1 ||
+        studioConfig.rotation !== 0 ||
+        studioConfig.topText ||
+        studioConfig.bottomText)
+  );
+
+  // Fast path: already an animated GIF and no custom canvas edits requested
+  if (isAnimatedGif(buf) && !hasCustomEdits) {
+    return buf;
+  }
+
+  if (isAnim && supportsAnimatedWebpEncoding()) {
+    return encodeAnimatedBufferToGif(
+      buf,
+      detectMime(buf),
+      studioConfig,
+      384
+    );
+  }
+
+  // Static image (or browser lacks ImageDecoder): render 512x512 canvas -> transparent GIF89a
+  const cv = await renderBufferToCanvas512(buf, studioConfig);
+  return encodeCanvasToGifBlob(cv, 512);
+}
+
+/**
+ * Builds `.ZIP` archive of stickers (supports `webp-all`, `gif-all`, `png-gif`, `webp-static`).
  */
 export async function buildPackZipBlob({
   queue,
   mode,
   studioConfig,
+  signal,
   onProgress,
 }) {
   if (!window.JSZip) {
     throw new Error("La librería JSZip no está cargada.");
   }
 
+  const maybeYield = createYieldBudget(50);
   const zip = new window.JSZip();
-  const folder = zip.folder("7tv_stickers");
+  const folderName = mode === "gif-all" ? "7tv_gifs" : "7tv_stickers";
+  const folder = zip.folder(folderName);
   const usedNames = new Map();
   let done = 0;
   let errors = 0;
 
   for (const item of queue) {
+    if (signal?.aborted) {
+      throw new DOMException("Cancelado por el usuario", "AbortError");
+    }
+    await maybeYield();
+
     onProgress?.({
       current: done + errors + 1,
       total: queue.length,
@@ -62,47 +144,68 @@ export async function buildPackZipBlob({
       usedNames.set(safeBase, seen + 1);
       const finalName = seen > 0 ? `${safeBase}_${seen}` : safeBase;
 
-      const buf = await resolveItemBuffer(
-        item,
-        mode === "png-gif" ? "gif" : "best"
-      );
-      const isAnim = isAnimatedBuffer(buf);
+      const prefer =
+        mode === "png-gif" || mode === "gif-all" ? "gif" : "best";
+      const buf = await resolveItemBuffer(item, prefer);
 
-      if (isAnim && mode !== "webp-static") {
-        if (mode === "png-gif" && !isAnimatedGif(buf) && !item.localBuffer) {
-          const gifBuf = await resolveItemBuffer(item, "gif");
-          const ext = isAnimatedGif(gifBuf) ? "gif" : "webp";
-          folder.file(`${finalName}.${ext}`, gifBuf);
-        } else if (
-          mode === "webp-all" &&
-          supportsAnimatedWebpEncoding()
-        ) {
-          const cfg = studioConfig
-            ? { ...DEFAULT_RENDER_CONFIG, ...studioConfig, topText: "", bottomText: "" }
-            : DEFAULT_RENDER_CONFIG;
-          const animWebp = await encodeAnimatedBufferToWebp512(
-            buf,
-            detectMime(buf),
-            cfg
-          );
-          folder.file(`${finalName}.webp`, animWebp);
-        } else {
-          const ext = isAnimatedGif(buf) ? "gif" : "webp";
-          folder.file(`${finalName}.${ext}`, buf);
-        }
+      if (mode === "gif-all") {
+        const gifPayload = await convertBufferToGifOutput(buf, studioConfig);
+        folder.file(`${finalName}.gif`, gifPayload);
       } else {
-        const targetMime = mode === "png-gif" ? "image/png" : "image/webp";
-        const targetExt = mode === "png-gif" ? "png" : "webp";
-        const outBlob = await convertBufferToStickerBlob(
-          buf,
-          targetMime,
-          studioConfig,
-          targetMime === "image/webp" ? 98_000 : null
-        );
-        folder.file(`${finalName}.${targetExt}`, outBlob);
+        const isAnim = isAnimatedBuffer(buf);
+
+        if (isAnim && mode !== "webp-static") {
+          if (mode === "png-gif" && !isAnimatedGif(buf) && !item.localBuffer && !item.file) {
+            const gifBuf = await resolveItemBuffer(item, "gif");
+            if (isAnimatedGif(gifBuf)) {
+              folder.file(`${finalName}.gif`, gifBuf);
+            } else {
+              const convertedGif = await convertBufferToGifOutput(
+                gifBuf,
+                studioConfig
+              );
+              folder.file(`${finalName}.gif`, convertedGif);
+            }
+          } else if (mode === "png-gif" && !isAnimatedGif(buf)) {
+            const convertedGif = await convertBufferToGifOutput(
+              buf,
+              studioConfig
+            );
+            folder.file(`${finalName}.gif`, convertedGif);
+          } else if (mode === "webp-all" && supportsAnimatedWebpEncoding()) {
+            const cfg = studioConfig
+              ? {
+                  ...DEFAULT_RENDER_CONFIG,
+                  ...studioConfig,
+                  topText: "",
+                  bottomText: "",
+                }
+              : DEFAULT_RENDER_CONFIG;
+            const animWebp = await encodeAnimatedBufferToWebp512(
+              buf,
+              detectMime(buf),
+              cfg
+            );
+            folder.file(`${finalName}.webp`, animWebp);
+          } else {
+            const ext = isAnimatedGif(buf) ? "gif" : "webp";
+            folder.file(`${finalName}.${ext}`, buf);
+          }
+        } else {
+          const targetMime = mode === "png-gif" ? "image/png" : "image/webp";
+          const targetExt = mode === "png-gif" ? "png" : "webp";
+          const outBlob = await convertBufferToStickerBlob(
+            buf,
+            targetMime,
+            studioConfig,
+            targetMime === "image/webp" ? 98_000 : null
+          );
+          folder.file(`${finalName}.${targetExt}`, outBlob);
+        }
       }
       done++;
     } catch (err) {
+      if (err.name === "AbortError") throw err;
       console.error(`Error procesando ${item.name}:`, err);
       errors++;
     }
@@ -124,14 +227,8 @@ export async function buildPackZipBlob({
 }
 
 /**
- * Builds one or more official `.wastickers` archives compatible with Sticker Maker
- * (Android & iOS) to install complete named Sticker Packs directly into WhatsApp.
- *
- * Enforces WhatsApp's native ContentProvider rules:
- * - 3 to 30 stickers per pack (auto-chunks larger queues into Vol. 1, Vol. 2...)
- * - `title.txt`, `author.txt`, `tray.png` (96x96 PNG < 50 KB) at archive root
- * - Homogeneous pack rule: either 100% static WebP 512x512 (<= 100 KB) or
- *   100% animated WebP 512x512 (<= 500 KB)
+ * Streaming `.wastickers` builder capable of converting unlimited PNGs/folders
+ * (1 to 1,000+ images) into 30-sticker Sticker Maker archives without RAM spikes.
  */
 export async function buildWastickersArchives({
   queue,
@@ -140,15 +237,21 @@ export async function buildWastickersArchives({
   trayItem = null,
   strategy = "unified", // "unified" | "split" | "static"
   studioConfig = null,
+  autoPadUnder3 = false,
+  signal,
   onProgress,
 }) {
   if (!window.JSZip) {
     throw new Error("La librería JSZip no está cargada.");
   }
-  if (queue.length < 3) {
+  if (!queue.length) {
+    throw new Error("No hay imágenes para convertir.");
+  }
+  if (queue.length < 3 && !autoPadUnder3) {
     throw new Error("WhatsApp exige mínimo 3 stickers para crear un paquete.");
   }
 
+  const maybeYield = createYieldBudget(50);
   const canEncodeAnim = supportsAnimatedWebpEncoding();
   const cleanTitle = title.trim().slice(0, 120) || "7TV Stickers";
   const cleanAuthor = author.trim().slice(0, 120) || "7TV Sticker Studio";
@@ -156,50 +259,32 @@ export async function buildWastickersArchives({
     ? { ...DEFAULT_RENDER_CONFIG, ...studioConfig, topText: "", bottomText: "" }
     : DEFAULT_RENDER_CONFIG;
 
-  // Step 1: Fetch buffers and classify items
-  const resolved = [];
-  let stepIdx = 0;
-  for (const item of queue) {
-    stepIdx++;
-    onProgress?.({
-      phase: "Descargando",
-      current: stepIdx,
-      total: queue.length,
-      name: item.name,
-      pct: Math.round((stepIdx / (queue.length * 2)) * 100),
-    });
-    try {
-      const buf = await resolveItemBuffer(item, "best");
-      resolved.push({
-        item,
-        buf,
-        isAnim: isAnimatedBuffer(buf),
-        mime: detectMime(buf),
-      });
-    } catch (err) {
-      console.error(`No se pudo descargar ${item.name}:`, err);
+  // Step 1: Lightweight metadata classification (zero full-file RAM buffering!)
+  const classified = [];
+  for (let i = 0; i < queue.length; i++) {
+    if (signal?.aborted) {
+      throw new DOMException("Cancelado por el usuario", "AbortError");
     }
+    await maybeYield();
+    const item = queue[i];
+    const isAnim =
+      strategy === "static" ? false : await probeIsItemAnimated(item);
+    classified.push({ item, isAnim });
   }
 
-  if (resolved.length < 3) {
-    throw new Error(
-      `Solo se pudieron obtener ${resolved.length} emotes válidos (mínimo 3).`
-    );
+  // Pad to 3 if `autoPadUnder3` is enabled and user dropped 1 or 2 PNGs
+  while (classified.length < 3) {
+    classified.push(classified[classified.length - 1]);
   }
 
-  // Step 2: Plan homogeneous pack groups of 3..30 stickers
+  // Step 2: Plan homogeneous 3..30 sticker volumes
   const groups = [];
-  const hasAnyAnim = resolved.some((r) => r.isAnim);
+  const hasAnyAnim = classified.some((c) => c.isAnim);
 
   if (strategy === "static" || !canEncodeAnim || !hasAnyAnim) {
-    const chunks = chunkArray(resolved, 30);
+    const chunks = chunkArray(classified, 30);
     chunks.forEach((chunk, idx) => {
-      if (chunk.length < 3 && groups.length > 0) {
-        // Pad up to 3 using earlier items if trailing chunk has 1-2 stickers
-        while (chunk.length < 3) {
-          chunk.push(resolved[chunk.length - 1]);
-        }
-      }
+      while (chunk.length < 3) chunk.push(classified[chunk.length - 1]);
       groups.push({
         packTitle:
           chunks.length > 1 ? `${cleanTitle} (${idx + 1})` : cleanTitle,
@@ -208,17 +293,16 @@ export async function buildWastickersArchives({
       });
     });
   } else if (strategy === "split") {
-    const animList = resolved.filter((r) => r.isAnim);
-    const staticList = resolved.filter((r) => !r.isAnim);
+    const animList = classified.filter((r) => r.isAnim);
+    const staticList = classified.filter((r) => !r.isAnim);
 
-    // If one bucket has 1-2 items (under WA's 3 minimum) and the other exists, merge into unified animated
     if (
       (animList.length > 0 && animList.length < 3) ||
       (staticList.length > 0 && staticList.length < 3)
     ) {
-      const chunks = chunkArray(resolved, 30);
+      const chunks = chunkArray(classified, 30);
       chunks.forEach((chunk, idx) => {
-        while (chunk.length < 3) chunk.push(resolved[chunk.length - 1]);
+        while (chunk.length < 3) chunk.push(classified[chunk.length - 1]);
         groups.push({
           packTitle:
             chunks.length > 1 ? `${cleanTitle} (${idx + 1})` : cleanTitle,
@@ -252,10 +336,9 @@ export async function buildWastickersArchives({
       });
     }
   } else {
-    // "unified": 100% animated pack where static stickers are wrapped as 2-frame animated WebPs
-    const chunks = chunkArray(resolved, 30);
+    const chunks = chunkArray(classified, 30);
     chunks.forEach((chunk, idx) => {
-      while (chunk.length < 3) chunk.push(resolved[chunk.length - 1]);
+      while (chunk.length < 3) chunk.push(classified[chunk.length - 1]);
       groups.push({
         packTitle:
           chunks.length > 1 ? `${cleanTitle} (${idx + 1})` : cleanTitle,
@@ -265,62 +348,78 @@ export async function buildWastickersArchives({
     });
   }
 
-  // Step 3: Encode stickers and package each `.wastickers` archive
-  const totalEncodeSteps = groups.reduce((s, g) => s + g.entries.length, 0);
-  let encodedDone = 0;
+  // Step 3: Stream-read & encode one sticker at a time per `.wastickers` volume
+  const totalSteps = groups.reduce((s, g) => s + g.entries.length, 0);
+  let processed = 0;
   const archives = [];
 
-  for (let gIdx = 0; gIdx < groups.length; gIdx++) {
-    const group = groups[gIdx];
+  for (const group of groups) {
+    if (signal?.aborted) {
+      throw new DOMException("Cancelado por el usuario", "AbortError");
+    }
     const zip = new window.JSZip();
-
     zip.file("title.txt", group.packTitle);
     zip.file("author.txt", cleanAuthor);
 
-    // Build 96x96 PNG tray icon from chosen trayItem or first entry in group
-    const traySourceBuf = trayItem
-      ? resolved.find((r) => r.item.id === trayItem.id)?.buf ||
-        group.entries[0].buf
-      : group.entries[0].buf;
+    const coverEntry =
+      trayItem && group.entries.some((e) => e.item.id === trayItem.id)
+        ? trayItem
+        : trayItem || group.entries[0].item;
+    const traySourceBuf = await resolveItemBuffer(coverEntry, "best");
     const trayBlob = await createTrayIconPngBlob(traySourceBuf);
     zip.file("tray.png", trayBlob);
 
+    let addedInGroup = 0;
     for (let i = 0; i < group.entries.length; i++) {
+      if (signal?.aborted) {
+        throw new DOMException("Cancelado por el usuario", "AbortError");
+      }
+      await maybeYield();
+
       const entry = group.entries[i];
-      encodedDone++;
+      processed++;
       onProgress?.({
         phase: "Convirtiendo",
-        current: encodedDone,
-        total: totalEncodeSteps,
+        current: processed,
+        total: totalSteps,
         name: entry.item.name,
-        pct:
-          50 + Math.round((encodedDone / Math.max(1, totalEncodeSteps)) * 48),
+        pct: Math.round((processed / Math.max(1, totalSteps)) * 96),
       });
 
-      let webpBlob;
-      if (group.packType === "animated") {
-        if (entry.isAnim) {
-          webpBlob = await encodeAnimatedBufferToWebp512(
-            entry.buf,
-            entry.mime,
-            cfg,
-            490_000
-          );
-        } else {
-          const cv = await renderBufferToCanvas512(entry.buf, cfg);
-          webpBlob = await wrapStaticCanvasAsAnimatedWebp(cv, 0.85);
-        }
-      } else {
-        webpBlob = await convertBufferToStickerBlob(
-          entry.buf,
-          "image/webp",
-          cfg,
-          98_000
-        );
-      }
+      try {
+        const buf = await resolveItemBuffer(entry.item, "best");
+        const realAnim = isAnimatedBuffer(buf);
 
-      zip.file(`${i + 1}.webp`, webpBlob);
+        let webpBlob;
+        if (group.packType === "animated") {
+          if (realAnim && canEncodeAnim) {
+            webpBlob = await encodeAnimatedBufferToWebp512(
+              buf,
+              detectMime(buf),
+              cfg,
+              490_000
+            );
+          } else {
+            const cv = await renderBufferToCanvas512(buf, cfg);
+            webpBlob = await wrapStaticCanvasAsAnimatedWebp(cv, 0.85);
+          }
+        } else {
+          webpBlob = await convertBufferToStickerBlob(
+            buf,
+            "image/webp",
+            cfg,
+            98_000
+          );
+        }
+
+        addedInGroup++;
+        zip.file(`${addedInGroup}.webp`, webpBlob);
+      } catch (err) {
+        console.error(`Error convirtiendo ${entry.item.name}:`, err);
+      }
     }
+
+    if (addedInGroup === 0) continue;
 
     const rawZipBlob = await zip.generateAsync({ type: "blob" });
     const safeFileSlug = group.packTitle
@@ -334,7 +433,7 @@ export async function buildWastickersArchives({
     archives.push({
       fileName: `${safeFileSlug || "7tv_pack"}.wastickers`,
       packTitle: group.packTitle,
-      count: group.entries.length,
+      count: addedInGroup,
       packType: group.packType,
       blob: wastickersBlob,
     });
@@ -342,8 +441,8 @@ export async function buildWastickersArchives({
 
   onProgress?.({
     phase: "Completado",
-    current: totalEncodeSteps,
-    total: totalEncodeSteps,
+    current: totalSteps,
+    total: totalSteps,
     name: cleanTitle,
     pct: 100,
   });
@@ -352,15 +451,22 @@ export async function buildWastickersArchives({
 }
 
 /**
- * Shares all queued stickers in a SINGLE multi-file Web Share sheet call
- * (converting animated emotes to 512x512 Animated WebP and static to 512x512 WebP),
- * falling back to sequential sharing only if the browser rejects multi-file share.
+ * Bundles multiple `.wastickers` archives into one `.ZIP` file for easy PC transfer.
  */
+export async function bundleArchivesIntoMasterZip(archives) {
+  const zip = new window.JSZip();
+  for (const arch of archives) {
+    zip.file(arch.fileName, arch.blob);
+  }
+  return zip.generateAsync({ type: "blob" });
+}
+
 export async function shareQueueBatchToWA({
   queue,
   studioConfig,
   onProgress,
 }) {
+  const maybeYield = createYieldBudget(50);
   const cfg = studioConfig
     ? { ...DEFAULT_RENDER_CONFIG, ...studioConfig, topText: "", bottomText: "" }
     : DEFAULT_RENDER_CONFIG;
@@ -368,6 +474,7 @@ export async function shareQueueBatchToWA({
   const files = [];
 
   for (let i = 0; i < queue.length; i++) {
+    await maybeYield();
     const item = queue[i];
     onProgress?.({
       current: i + 1,
@@ -409,7 +516,6 @@ export async function shareQueueBatchToWA({
 
   if (!files.length) return { sent: 0, mode: "none" };
 
-  // Prefer single-shot multi-file Web Share!
   if (navigator.canShare && navigator.canShare({ files })) {
     await navigator.share({
       files,
@@ -418,7 +524,6 @@ export async function shareQueueBatchToWA({
     return { sent: files.length, mode: "batch" };
   }
 
-  // Fallback: sequential share if browser caps multi-file Web Share
   let sent = 0;
   for (const file of files) {
     try {

@@ -8,7 +8,6 @@ import {
   fetchEmoteAssetBuffer,
   fetchUrlArrayBuffer,
 } from "../services/sevenTvApi.js";
-import { isAnimatedBuffer } from "../core/binaryDetect.js";
 import { setStatus, showToast } from "./notifications.js";
 import { selectTabById } from "./tabs.js";
 
@@ -472,66 +471,7 @@ export function initExplorerView({ onLoadBufferInStudio }) {
     loadFromAnyUrl(val);
   });
 
-  // ── 4. Local File Upload & Multi-file Dropzone ─────────────────────────────
-  async function handleLocalFiles(files) {
-    if (!files.length) return;
-    const first = files[0];
-    const firstBuf = await first.arrayBuffer();
-    const baseName = first.name.replace(/\.[^.]+$/, "") || "archivo";
-    const meta = {
-      id: `local_${Date.now()}`,
-      name: baseName,
-      localBuffer: firstBuf,
-      thumbUrl: URL.createObjectURL(first),
-    };
-    store.setActiveEmote(null, meta);
-    await onLoadBufferInStudio(firstBuf, baseName, meta);
-
-    if (files.length > 1) {
-      const batchItems = [];
-      for (const f of files) {
-        const buf = await f.arrayBuffer();
-        const n = f.name.replace(/\.[^.]+$/, "") || "sticker";
-        batchItems.push({
-          id: `local_${Math.random().toString(36).slice(2, 9)}`,
-          name: n,
-          animated: isAnimatedBuffer(buf),
-          thumbUrl: URL.createObjectURL(f),
-          localBuffer: buf,
-        });
-      }
-      store.addManyToPack(batchItems);
-      showToast(
-        `📁 ${files.length} archivos añadidos al Pack y el primero abierto en el Studio`
-      );
-    } else {
-      showToast(`📁 "${baseName}" cargado en el Sticker Studio`);
-    }
-  }
-
-  const dz = document.getElementById("dropzone");
-  const fileIn = document.getElementById("file-in");
-
-  dz?.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    dz.classList.add("over");
-  });
-  dz?.addEventListener("dragleave", () => dz.classList.remove("over"));
-  dz?.addEventListener("drop", (e) => {
-    e.preventDefault();
-    dz.classList.remove("over");
-    if (e.dataTransfer?.files?.length) {
-      handleLocalFiles(Array.from(e.dataTransfer.files));
-    }
-  });
-  fileIn?.addEventListener("change", (e) => {
-    if (e.target.files?.length) {
-      handleLocalFiles(Array.from(e.target.files));
-      e.target.value = "";
-    }
-  });
-
-  // ── 5. Saved Collections Actions ───────────────────────────────────────────
+  // ── 4. Saved Collections Actions ───────────────────────────────────────────
   document
     .getElementById("clear-favs-btn")
     ?.addEventListener("click", () => store.clearSavedCollection("favs"));
@@ -544,6 +484,5 @@ export function initExplorerView({ onLoadBufferInStudio }) {
 
   return {
     loadFromAnyUrl,
-    handleLocalFiles,
   };
 }

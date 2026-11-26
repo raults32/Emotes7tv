@@ -10,6 +10,7 @@ import {
   supportsAnimatedWebpEncoding,
   encodeAnimatedBufferToWebp512,
 } from "../core/animatedWebp.js";
+import { convertBufferToGifOutput } from "../core/zipBuilder.js";
 import { writePngBlobToClipboard } from "../services/clipboard.js";
 import { setStatus, showToast } from "./notifications.js";
 import { openHelpDialog } from "./modals.js";
@@ -267,6 +268,16 @@ export function initStudioView() {
 
   async function buildFinalStickerExport(forceWhatsAppReady = false) {
     const cfg = getStudioSettings();
+    if (!forceWhatsAppReady && cfg.format === "image/gif") {
+      setStatus("⟳ Generando archivo GIF transparente…", "run");
+      const gifData = await convertBufferToGifOutput(state.rawBuffer, cfg);
+      const gifBlob =
+        gifData instanceof Blob
+          ? gifData
+          : new Blob([gifData], { type: "image/gif" });
+      return { blob: gifBlob, ext: "gif", mime: "image/gif" };
+    }
+
     if (state.isSourceAnimated && !state.editAnimatedAsStatic) {
       if (
         (forceWhatsAppReady || cfg.format === "image/webp") &&

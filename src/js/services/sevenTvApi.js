@@ -163,6 +163,24 @@ export async function fetchEmoteAssetBuffer(em, preferFormat = "best") {
   const base = em.host?.url || "";
   const urlBase = base.startsWith("//") ? "https:" + base : base;
   const files = em.host?.files || [];
+
+  // When requesting native GIF on an animated 7TV emote whose host.files omits GIF, probe CDN 4x.gif first
+  if (
+    preferFormat === "gif" &&
+    em.animated &&
+    !files.some((f) => f.format === "GIF") &&
+    urlBase
+  ) {
+    try {
+      const probe = await fetch(`${urlBase}/4x.gif`, {
+        signal: timeoutSignal(6_000),
+      });
+      if (probe.ok) return await probe.arrayBuffer();
+    } catch {
+      // Fall back to standard WEBP/PNG files below
+    }
+  }
+
   if (!files.length) throw new Error("Emote sin archivos disponibles");
 
   const order =

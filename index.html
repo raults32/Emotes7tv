@@ -131,7 +131,7 @@
               aria-selected="false"
               data-panel="panel-upload"
             >
-              📁 Subir Archivos
+              📂 Carpeta / PNGs → WA
             </button>
             <button
               type="button"
@@ -339,7 +339,7 @@
             </div>
           </div>
 
-          <!-- PANEL 4: FILE UPLOAD -->
+          <!-- PANEL 4: UNLIMITED FOLDER & PNGs -> .WASTICKERS / GIF -->
           <div
             role="tabpanel"
             id="panel-upload"
@@ -347,27 +347,176 @@
             hidden="until-found"
           >
             <div class="panel-inner">
+              <div class="upload-picker-bar">
+                <button type="button" class="btn" id="pick-folder-btn">
+                  📂 Subir Carpeta Completa
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  id="pick-files-btn"
+                >
+                  🖼️ Seleccionar PNGs / Imágenes (Sin límite)
+                </button>
+              </div>
+
+              <label for="folder-in" class="visually-hidden"
+                >Seleccionar carpeta completa de imágenes</label
+              >
+              <input
+                type="file"
+                id="folder-in"
+                class="visually-hidden"
+                webkitdirectory
+                directory
+                multiple
+              />
+
               <div class="dropzone" id="dropzone">
                 <label for="file-in" class="visually-hidden"
-                  >Seleccionar imágenes o GIFs</label
+                  >Seleccionar imágenes o GIFs sin límite</label
                 >
                 <input
                   type="file"
                   id="file-in"
-                  accept="image/*,.gif,.webp,.avif"
+                  accept="image/*,.png,.gif,.webp,.avif,.jpg,.jpeg"
                   multiple
                 />
-                <div class="dropzone-icon" aria-hidden="true">🖼️</div>
+                <div class="dropzone-icon" aria-hidden="true">📂</div>
                 <div class="dropzone-title">
-                  Arrastra una o varias imágenes / GIFs aquí
+                  Arrastra aquí una carpeta entera o todos los PNGs que quieras
                 </div>
                 <div class="dropzone-sub">
-                  o haz clic para explorar en tu dispositivo
+                  Sin límite de cantidad · Se divide automáticamente en paquetes
+                  de 30 para Sticker Maker
                 </div>
                 <div class="mono dropzone-formats">
-                  PNG · WEBP · GIF animado · JPG · AVIF (Subida múltiple
-                  soportada)
+                  PNG · WEBP · GIF · JPG · AVIF · Carpetas y subcarpetas
                 </div>
+              </div>
+
+              <!-- Bulk Loaded Workspace -->
+              <div class="bulk-workspace is-hidden" id="bulk-workspace">
+                <div class="bulk-header-row">
+                  <div class="bulk-header-info">
+                    <strong id="bulk-count-label">0 imágenes cargadas</strong>
+                    <span id="bulk-packs-hint"></span>
+                  </div>
+                  <div class="mini-btn-group">
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm"
+                      id="bulk-send-to-dock-btn"
+                    >
+                      ➕ Pasar a Cola General
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-danger btn-sm"
+                      id="bulk-clear-btn"
+                    >
+                      🗑 Limpiar
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  class="bulk-preview-grid custom-scroll"
+                  id="bulk-preview-grid"
+                ></div>
+
+                <div class="load-more-row">
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm is-hidden"
+                    id="bulk-more-thumbs-btn"
+                  >
+                    Ver más miniaturas
+                  </button>
+                </div>
+
+                <div class="bulk-config-card">
+                  <div class="pack-fields-two">
+                    <div class="field-block">
+                      <label for="bulk-title-in" class="field-label"
+                        >Nombre del Pack en Sticker Maker / WhatsApp</label
+                      >
+                      <input
+                        type="text"
+                        id="bulk-title-in"
+                        class="input-text"
+                        value="Mis Stickers PNG"
+                        maxlength="100"
+                      />
+                    </div>
+                    <div class="field-block">
+                      <label for="bulk-author-in" class="field-label"
+                        >Autor del Pack</label
+                      >
+                      <input
+                        type="text"
+                        id="bulk-author-in"
+                        class="input-text"
+                        value="7TV Studio"
+                        maxlength="100"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="filter-group">
+                    <label for="bulk-fit-select" class="field-label"
+                      >Encuadre:</label
+                    >
+                    <select id="bulk-fit-select" class="select-input">
+                      <option value="contain">
+                        Proporcional 512×512 (Sin recortar)
+                      </option>
+                      <option value="stretch">Expandir (Wide)</option>
+                      <option value="cover">Rellenar</option>
+                    </select>
+                    <label class="check-label" for="bulk-use-studio-fx">
+                      <input type="checkbox" id="bulk-use-studio-fx" />
+                      <span>Aplicar borde/sombra actual del Studio</span>
+                    </label>
+                  </div>
+
+                  <div class="bulk-cta-row">
+                    <button
+                      type="button"
+                      class="btn btn-wa"
+                      id="bulk-build-wastickers-btn"
+                    >
+                      📲 Convertir directo a Sticker Maker (.wastickers)
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost"
+                      id="bulk-build-gif-btn"
+                    >
+                      🎞️ Descargar Lote en GIF (.ZIP)
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-danger is-hidden"
+                      id="bulk-cancel-btn"
+                    >
+                      ⏹ Cancelar
+                    </button>
+                  </div>
+
+                  <div class="pack-progress is-hidden" id="bulk-progress">
+                    <div
+                      class="pack-progress-fill"
+                      id="bulk-progress-fill"
+                    ></div>
+                  </div>
+                  <div class="mono pack-status-line" id="bulk-status-line"></div>
+                </div>
+
+                <div
+                  class="bulk-results-box custom-scroll is-hidden"
+                  id="bulk-results-box"
+                ></div>
               </div>
             </div>
           </div>
@@ -727,6 +876,9 @@
                 <option value="image/png">
                   PNG 512×512 (Ideal Discord / Máxima nitidez)
                 </option>
+                <option value="image/gif">
+                  GIF Transparente (.gif — Animado o Estático)
+                </option>
               </select>
               <div class="slider-field" id="quality-field">
                 <div class="slider-label-row">
@@ -777,7 +929,10 @@
             >
             <select id="zip-format-select" class="select-input">
               <option value="webp-all">
-                ZIP: Estáticos WEBP 512 + Animados WEBP/GIF
+                ZIP: Estáticos WEBP 512 + Animados WEBP
+              </option>
+              <option value="gif-all">
+                ZIP: Todos en formato GIF (.gif)
               </option>
               <option value="png-gif">
                 ZIP: Estáticos PNG 512 + Animados GIF
@@ -792,6 +947,13 @@
               id="clear-pack-btn"
             >
               🗑 Vaciar
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              id="gif-zip-btn"
+            >
+              🎞️ Pack GIF (.ZIP)
             </button>
             <button type="button" class="btn btn-ghost btn-sm" id="zip-btn">
               📦 Descargar .ZIP

@@ -3,10 +3,11 @@ import {
   readClipboardImageOrUrl,
   bindGlobalPasteListener,
 } from "./services/clipboard.js";
-import { initTabs } from "./ui/tabs.js";
+import { initTabs, selectTabById } from "./ui/tabs.js";
 import { initModalsAndTheme } from "./ui/modals.js";
 import { initStudioView } from "./ui/studioView.js";
 import { initExplorerView } from "./ui/explorerView.js";
+import { initBulkFolderView } from "./ui/bulkFolderView.js";
 import { initPackView } from "./ui/packView.js";
 import { showToast } from "./ui/notifications.js";
 
@@ -30,6 +31,9 @@ function bootstrap() {
 
   const studio = initStudioView();
   const explorer = initExplorerView({
+    onLoadBufferInStudio: (buf, name) => studio.loadBufferIntoStudio(buf, name),
+  });
+  const bulkFolder = initBulkFolderView({
     onLoadBufferInStudio: (buf, name) => studio.loadBufferIntoStudio(buf, name),
   });
   initPackView();
@@ -61,7 +65,10 @@ function bootstrap() {
     });
 
   bindGlobalPasteListener({
-    onImageFile: (file) => explorer.handleLocalFiles([file]),
+    onImageFile: (file) => {
+      selectTabById("tab-upload", false);
+      bulkFolder.ingestFiles([file]);
+    },
     onUrlText: (url) => explorer.loadFromAnyUrl(url),
   });
 }

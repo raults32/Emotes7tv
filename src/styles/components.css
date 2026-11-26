@@ -1392,6 +1392,152 @@
     text-align: center;
   }
 
+  /* ── Bulk Folder / Unlimited PNGs -> .wastickers Section ── */
+  .upload-picker-bar {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-block-end: 0.85rem;
+  }
+
+  .upload-picker-bar .btn {
+    flex: 1;
+    min-inline-size: 200px;
+  }
+
+  .bulk-workspace {
+    margin-block-start: 1.1rem;
+    padding-block-start: 1rem;
+    border-block-start: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .bulk-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .bulk-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+  }
+
+  .bulk-header-info strong {
+    font-size: 0.88rem;
+    color: var(--green);
+  }
+
+  .bulk-header-info span {
+    font-size: 0.74rem;
+    color: var(--text-soft);
+  }
+
+  .bulk-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 0.5rem;
+    max-block-size: 240px;
+    overflow-y: auto;
+    padding: 0.2rem;
+  }
+
+  .bulk-thumb-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.35rem 0.4rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+    background: var(--bg-elevated);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .bulk-thumb-card:hover {
+    border-color: var(--accent);
+  }
+
+  .bulk-thumb-card img {
+    inline-size: 52px;
+    block-size: 52px;
+    object-fit: contain;
+  }
+
+  .bulk-config-card {
+    padding: 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line);
+    background: var(--bg-elevated);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .bulk-cta-row {
+    display: flex;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+
+  .bulk-cta-row .btn {
+    flex: 1;
+    min-inline-size: 190px;
+  }
+
+  .bulk-results-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-block-size: 290px;
+    overflow-y: auto;
+    padding: 0.15rem;
+  }
+
+  .bulk-master-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+    font-size: 0.8rem;
+  }
+
+  .wastickers-result-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-strong);
+    background: var(--surface-input);
+  }
+
+  .wastickers-result-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.8rem;
+  }
+
+  .wastickers-result-meta span {
+    font-size: 0.7rem;
+    color: var(--text-soft);
+  }
+
   /* ── Toast Notifications (persistent-toast-notifications) ── */
   #toast-region {
     position: fixed;
