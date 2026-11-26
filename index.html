@@ -793,15 +793,22 @@
             >
               🗑 Vaciar
             </button>
-            <button type="button" class="btn btn-green btn-sm" id="zip-btn">
-              📦 Descargar Pack (.ZIP)
+            <button type="button" class="btn btn-ghost btn-sm" id="zip-btn">
+              📦 Descargar .ZIP
             </button>
             <button
               type="button"
-              class="btn btn-wa btn-sm is-hidden"
+              class="btn btn-ghost btn-sm is-hidden"
               id="share-pack-btn"
             >
-              📲 Enviar uno por uno a WA
+              💬 Enviar Lote al Chat
+            </button>
+            <button
+              type="button"
+              class="btn btn-wa btn-sm"
+              id="open-wastickers-btn"
+            >
+              📲 Crear Pack WhatsApp (.wastickers)
             </button>
           </div>
         </div>
@@ -812,6 +819,130 @@
         </div>
       </div>
     </section>
+
+    <!-- WhatsApp .wastickers Pack Configurator Modal Dialog -->
+    <dialog
+      id="wastickers-dialog"
+      closedby="any"
+      aria-labelledby="wastickers-dialog-title"
+    >
+      <div class="dialog-inner">
+        <div class="dialog-head">
+          <h1 id="wastickers-dialog-title">
+            📲 Instalar Paquete Completo en WhatsApp
+          </h1>
+          <form method="dialog">
+            <button
+              type="submit"
+              class="btn btn-ghost btn-sm"
+              aria-label="Cerrar creador de paquete"
+            >
+              ✕ Cerrar
+            </button>
+          </form>
+        </div>
+
+        <div class="pack-modal-banner ok" id="wastickers-summary-banner">
+          ✓ Selecciona entre 3 y 30 stickers por paquete.
+        </div>
+
+        <div class="pack-form-grid">
+          <div class="pack-fields-two">
+            <div class="field-block">
+              <label for="pack-title-in" class="field-label"
+                >Nombre del Paquete en WhatsApp</label
+              >
+              <input
+                type="text"
+                id="pack-title-in"
+                class="input-text"
+                value="7TV Stickers"
+                maxlength="120"
+                autofocus
+              />
+            </div>
+            <div class="field-block">
+              <label for="pack-author-in" class="field-label"
+                >Autor / Creador</label
+              >
+              <input
+                type="text"
+                id="pack-author-in"
+                class="input-text"
+                value="7TV Studio"
+                maxlength="120"
+              />
+            </div>
+          </div>
+
+          <div class="field-block">
+            <span class="field-label" id="tray-picker-label"
+              >Elige el Ícono de Portada del Pack (96×96 PNG):</span
+            >
+            <div
+              class="tray-picker custom-scroll"
+              id="tray-picker-strip"
+              role="group"
+              aria-labelledby="tray-picker-label"
+            ></div>
+          </div>
+
+          <div class="field-block">
+            <label for="wastickers-strategy" class="field-label"
+              >Compatibilidad de Animados vs Estáticos (Regla oficial de
+              WhatsApp)</label
+            >
+            <select id="wastickers-strategy" class="select-input select-full">
+              <option value="unified">
+                Unificar todo en 1 Pack Animado (Mantiene animados + estáticos
+                juntos)
+              </option>
+              <option value="split">
+                Separar automáticamente en Pack Animado y Pack Estático
+              </option>
+              <option value="static">
+                Convertir todos a Estáticos (&lt;100 KB — Máxima ligereza)
+              </option>
+            </select>
+          </div>
+
+          <div class="pack-progress is-hidden" id="wastickers-progress">
+            <div
+              class="pack-progress-fill"
+              id="wastickers-progress-fill"
+            ></div>
+          </div>
+          <div class="mono pack-status-line" id="wastickers-status-line"></div>
+
+          <div class="pack-modal-actions">
+            <button
+              type="button"
+              class="btn btn-wa is-hidden"
+              id="share-wastickers-btn"
+            >
+              📲 Abrir directo en Sticker Maker
+            </button>
+            <button
+              type="button"
+              class="btn btn-green"
+              id="download-wastickers-btn"
+            >
+              ⬇ Descargar Pack (.wastickers)
+            </button>
+          </div>
+
+          <div class="guide-item">
+            <strong>💡 ¿Cómo se instala en 2 toques?</strong>
+            WhatsApp exige por seguridad una app puente para registrar paquetes
+            completos. Abre el archivo <code>.wastickers</code> en tu teléfono
+            con <b>Sticker Maker</b> (Android / iOS) → pulsa
+            <b>Añadir a mi librería → Agregar a WhatsApp</b>. Si estás en PC,
+            envíate el archivo <code>.wastickers</code> a tu propio chat en
+            WhatsApp Web y tócalo desde tu celular.
+          </div>
+        </div>
+      </div>
+    </dialog>
 
     <!-- WhatsApp Instructions Modal Dialog -->
     <dialog id="help-dialog" closedby="any" aria-labelledby="help-dialog-title">
@@ -834,27 +965,27 @@
 
         <div class="guide-steps">
           <div class="guide-item">
-            <strong>📱 Desde Android / iPhone (Directo)</strong>
-            Pulsa el botón verde <b>Compartir Sticker a WhatsApp</b>. Al
-            enviarse como archivo <code>WEBP 512×512</code> con canal alfa,
-            WhatsApp conserva la transparencia exacta sin recortar ni añadir
-            bordes blancos.
+            <strong>📲 Instalar un Pack Completo con Nombre e Ícono</strong>
+            Agrega 3 o más emotes con el botón <b>+</b> y pulsa
+            <b>📲 Crear Pack WhatsApp (.wastickers)</b>. Se generará un paquete
+            oficial con nombre, autor, portada <code>96×96</code> y stickers
+            <code>512×512</code> listos para abrir en <b>Sticker Maker</b> y
+            añadir el pack entero a WhatsApp con un toque.
           </div>
           <div class="guide-item">
-            <strong>💻 Desde PC (WhatsApp Web / Escritorio / Discord)</strong>
-            Haz clic en <b>📋 Copiar Imagen</b> y presiona <kbd>Ctrl</kbd>+<kbd
+            <strong>💬 Enviar Lote o Sticker Individual sin Apps Extra</strong>
+            En el celular, usa <b>💬 Enviar Lote al Chat</b> (o
+            <b>Compartir Sticker a WhatsApp</b>) para mandar todos los
+            <code>WEBP 512×512</code> transparentes juntos a tu propio chat y
+            guardarlos en Favoritos.
+          </div>
+          <div class="guide-item">
+            <strong>💻 Desde PC (WhatsApp Web / Discord / Telegram)</strong>
+            Haz clic en <b>📋 Copiar Imagen</b> y pega con <kbd>Ctrl</kbd>+<kbd
               >V</kbd
-            >
-            directamente en el chat, o descarga el archivo <code>.webp</code> y
-            arrástralo dentro de la conversación usando la opción de crear
-            sticker de WhatsApp Web.
-          </div>
-          <div class="guide-item">
-            <strong>📦 Crear un Pack Completo (3 a 30 stickers)</strong>
-            Pulsa el botón <b>+</b> en la esquina superior derecha de todos los
-            emotes que quieras, descárgalos en un solo <b>.ZIP</b> e impórtalos
-            en tu app de paquetes de stickers favorita (como
-            <em>Sticker Maker</em>) o en Telegram/Discord.
+            >, o envíate el archivo <code>.wastickers</code> a tu propio chat de
+            WhatsApp Web para instalar el pack completo al abrirlo en tu
+            celular.
           </div>
         </div>
       </div>

@@ -1,32 +1,40 @@
 import { loadSavedTheme, saveThemePreference } from "../state/storage.js";
 
-export function openHelpDialog() {
-  const dialog = document.getElementById("help-dialog");
+export function openDialogById(id) {
+  const dialog = document.getElementById(id);
   if (dialog && !dialog.open) {
     dialog.showModal();
   }
 }
 
-export function initModalsAndTheme() {
-  const helpDialog = document.getElementById("help-dialog");
-  const openHelpBtn = document.getElementById("open-help-btn");
+export function openHelpDialog() {
+  openDialogById("help-dialog");
+}
 
+export function openWastickersDialog() {
+  openDialogById("wastickers-dialog");
+}
+
+export function initModalsAndTheme() {
+  const openHelpBtn = document.getElementById("open-help-btn");
   if (openHelpBtn) {
     openHelpBtn.addEventListener("click", () => openHelpDialog());
   }
 
   // Light-dismiss fallback where native `<dialog closedby>` is unsupported
-  if (helpDialog && !("closedBy" in HTMLDialogElement.prototype)) {
-    helpDialog.addEventListener("click", (event) => {
-      if (event.target !== helpDialog) return;
-      const rect = helpDialog.getBoundingClientRect();
-      const isDialogContent =
-        rect.top <= event.clientY &&
-        event.clientY <= rect.top + rect.height &&
-        rect.left <= event.clientX &&
-        event.clientX <= rect.left + rect.width;
-      if (!isDialogContent) helpDialog.close();
-    });
+  if (!("closedBy" in HTMLDialogElement.prototype)) {
+    for (const dialog of document.querySelectorAll('dialog[closedby="any"]')) {
+      dialog.addEventListener("click", (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const isDialogContent =
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width;
+        if (!isDialogContent) dialog.close();
+      });
+    }
   }
 
   // Theme initialization & toggle
