@@ -1,0 +1,105 @@
+@layer layout {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    border-block-end: 1px solid var(--line);
+  }
+
+  .topbar-inner {
+    max-inline-size: 1260px;
+    margin-inline: auto;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 4vw, 2.5rem);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--green) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .brand-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-soft);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg-elevated);
+  }
+
+  .topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .status-strip {
+    max-inline-size: 1260px;
+    inline-size: 100%;
+    margin: 0.85rem auto 0;
+    padding-inline: 1.25rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .workspace {
+    position: relative;
+    z-index: 1;
+    max-inline-size: 1260px;
+    inline-size: 100%;
+    margin: 1rem auto 0;
+    padding-inline: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  @media (min-width: 980px) {
+    .workspace {
+      grid-template-columns: minmax(0, 1.28fr) minmax(380px, 0.92fr);
+    }
+  }
+
+  .studio-sticky {
+    position: static;
+  }
+
+  @media (min-width: 980px) {
+    .studio-sticky {
+      position: sticky;
+      top: 4.6rem;
+    }
+  }
+
+  .site-footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 2.5rem 1rem 1rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+}
